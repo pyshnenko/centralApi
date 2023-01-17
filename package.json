@@ -1,0 +1,28 @@
+{
+  "name": "centralapi",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 8765",
+    "build": "next build",
+    "start": "next start -p 8765",
+    "lint": "next lint -p 8765"
+  },
+  "dependencies": {
+    "@next/font": "13.0.7",
+    "bcrypt": "^5.1.0",
+    "crypto-js": "^4.1.1",
+    "dotenv": "^16.0.3",
+    "eslint": "8.30.0",
+    "eslint-config-next": "13.0.7",
+    "fs": "^0.0.1-security",
+    "ioredis": "^5.2.4",
+    "jsonwebtoken": "^8.5.1",
+    "mongodb": "^4.12.1",
+    "next": "13.0.7",
+    "nextjs-cors": "^2.1.2",
+    "nodemailer": "^6.9.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  }
+}
