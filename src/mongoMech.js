@@ -151,17 +151,6 @@ class mongoFunc {
                     );
                 }   
             }
-            /*await userLogin[0].accessUsers.map(async(dat)=>{
-                console.log('dat')
-                let logData = await collection.find({login: dat}).toArray();
-                if (!logData[0].lists.includes(bufList.id)) {
-                    logData[0].lists.push(id);
-                    await collection.updateOne(
-                        {login: dat}, 
-                        {$set: {lists: logData[0].lists} }
-                    );
-                }
-            })  */ 
         } catch (error) {
             console.log(error)
         } finally {
@@ -221,7 +210,7 @@ class mongoFunc {
             extBuf = await listCollection.find({id: id}).toArray();
         }catch(err) {
             console.log(err)
-            extBuf=[];
+            extBuf=[{mes: 'error'}];
         } finally {
             await mongoClient.close();
             return extBuf;

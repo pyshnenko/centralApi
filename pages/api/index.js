@@ -28,7 +28,30 @@ export default async function handler(req, res) {
       let buf;
       if (typeof(req.body)==='string') buf = JSON.parse(req.body);
       else buf = req.body;
-      if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='reg')) {
+      if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='checkLogin')&&(req.hasOwnProperty('body'))&&(req.body.login)) {
+        console.log('check login');
+        console.log(buf)
+        let extData = await mongo.find({login: buf.login.trim()})
+        extData.length===0 ? res.status(200).json({ result: 'free' }) : res.status(200).json({ result: 'buzy' })
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='usersList')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')) {
+        console.log('usersList');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        if (extData.length!==0) {
+          let data = await mongo.find({})
+          console.log(data);
+          let result = [];
+          data.map((key)=>{
+            result.push({login: key.login, role: key.role, name: key.name});
+          });
+          res.status(200).json({ list: result });
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='reg')) {
         console.log('\n\nreg\n\n')
         let extData = await mongo.find({login: req.body.login.trim()})
         if (extData.length===0) {
@@ -67,7 +90,7 @@ export default async function handler(req, res) {
         if (extData.length!==0) {
             res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})
         }
-        else res.status(401).json({err: 'login not found'})
+        else res.status(401).json({err: 'login not found', make: req.headers.make})
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='login')&&(req.hasOwnProperty('body'))&&(req.body.login!=='')&&(req.body.pass!==''))
       {
@@ -78,10 +101,10 @@ export default async function handler(req, res) {
             console.log(result)
             let atoken=extData[0].pass.substr(7)
             if (result == true) res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})
-            else res.status(401).json({ res: 'not ok', error: 'pass incorrect'})
+            else res.status(401).json({ res: 'not ok', error: 'pass incorrect', make: req.headers.make})
           });
         }
-        else res.status(401).json({err: 'login not found'})
+        else res.status(401).json({err: 'login not found', make: req.headers.make})
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='lists')&&(req.headers.hasOwnProperty('authorization')))
       {
@@ -90,6 +113,10 @@ export default async function handler(req, res) {
         let extData = await mongo.find({token: atoken})
         let realLists = [];
         let needUpd = false;
+        console.log('atoken')
+        console.log(atoken)
+        console.log('extData.length')
+        console.log(extData.length)
         if (extData.length!==0) {
           if ((extData[0].hasOwnProperty('lists'))&&(extData[0].lists.length!==0)) {
             let resData = [];
@@ -109,13 +136,15 @@ export default async function handler(req, res) {
               }
               else needUpd = true;
             }
+            console.log('lists111: ');
+            console.log(realLists);
             if (needUpd) mongo.updateOne({login: extData[0].login}, {lists: realLists})
             res.status(200).json({ lists: resData })
           }
           else 
           res.status(200).json({lists: [{name: 'Тестовый лист', author: 'nop', data: []}]})
         }
-        else res.status(401).json({err: 'login not found'})
+        else res.status(401).json({err: 'login not found', make: req.headers.make})
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='setList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body')))
       {
@@ -146,7 +175,7 @@ export default async function handler(req, res) {
           if (needUpd) mongo.updateOne({login: extData[0].login}, {lists: realLists})
           res.status(200).json({ message: 'list save', list: resData })
         }
-        else res.status(401).json({err: 'login not found'})
+        else res.status(401).json({err: 'login not found', make: req.headers.make})
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body')))
       {
@@ -161,7 +190,7 @@ export default async function handler(req, res) {
           console.log('answ')
           res.status(200).json({ message: 'list upd', list: req.body.list })
         }
-        else res.status(401).json({err: 'login not found'})
+        else res.status(401).json({err: 'login not found', make: req.headers.make})
         console.log('exit');
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='delList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
@@ -176,9 +205,9 @@ export default async function handler(req, res) {
             let reee = await mongo.deleteList(Number(buf.id));
             res.status(200).json({res: reee});
           }
-          else res.status(200).json({res: 'incorrect'});
+          else res.status(402).json({res: 'incorrect', make: req.headers.make});
         }
-        else res.status(401).json({error: 'unautorized'})
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='checkMail')&&(req.headers.hasOwnProperty('authorization'))) {
         let atoken=req.headers.authorization.substr(7)
@@ -189,9 +218,9 @@ export default async function handler(req, res) {
             await mail.sendMail(extData[0].email, extData[0].login);
             res.status(200).json({res: 'send'});
           }
-          else res.status(402).json({error: 'incorrect'})
+          else res.status(402).json({error: 'incorrect', make: req.headers.make})
         }
-        else res.status(401).json({error: 'unautorized'})
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updUserData')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
         let atoken=req.headers.authorization.substr(7)
@@ -211,9 +240,9 @@ export default async function handler(req, res) {
             let reee = await mongo.find({token: atoken});
             res.status(200).json({data: reee});
           }
-          else res.status(200).json({res: 'incorrect'});
+          else res.status(402).json({res: 'incorrect', make: req.headers.make});
         }
-        else res.status(401).json({error: 'unautorized'})
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askList')&&(req.hasOwnProperty('body'))) {
         let buf;
@@ -227,7 +256,7 @@ export default async function handler(req, res) {
             }
             else res.status(402).json({error: 'access denied'});
           }
-          else res.status(401).json({error: 'no list'});
+          else res.status(401).json({error: 'no list', make: req.headers.make});
         }
         else res.status(200).json({error: 'incorrect'});
       }
@@ -246,13 +275,13 @@ export default async function handler(req, res) {
               let answ = await mongo.updList('', buf.list, true);
               res.status(200).json({res: answ});
             }
-            else res.status(402).json({error: 'access denied'});
+            else res.status(402).json({error: 'access denied', make: req.headers.make});
           }
-          else res.status(401).json({error: 'no list'});
+          else res.status(401).json({error: 'no list', make: req.headers.make});
         }
-        else res.status(200).json({error: 'incorrect'});
+        else res.status(402).json({error: 'incorrect', make: req.headers.make});
       }
-      else res.status(401).json({error: 'not ok'});
+      else res.status(401).json({error: 'not ok', make: req.headers.make});
     }    
     else if (req.method==='GET') {
       if (((Object.keys(req.query)).includes('name'))&&((Object.keys(req.query)).includes('addr'))) {
@@ -288,7 +317,7 @@ export default async function handler(req, res) {
           }
           res.status(200).json({res: 'incorrect'});
         }
-        else res.status(401).json({error: 'unautorized'})
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
       }
       else res.status(200).json({test: 'ok'})
     }
