@@ -51,6 +51,51 @@ export default async function handler(req, res) {
         else res.status(401).json({err: 'login not found', make: req.headers.make});
       }
 
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askUserData')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
+        console.log('askUserData');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        if (extData.length!==0) {
+          let data = await mongo.find({login: req.body.login})
+          console.log('data');
+          console.log(data);
+          res.status(200).json({ answer: {
+            login: data[0].login, 
+            role: data[0].role,
+            avatar: data[0].avatar,
+            name: data[0].name, 
+            first_name: data[0].first_name, 
+            last_name: data[0].last_name, 
+            email: data[0].email, 
+            emailValid: data[0].emailValid,
+            telegram: data[0].telegram,
+            asked: (((data[0].askToAdd)&&(data[0].askToAdd.includes(extData[0].login))) ? true : false)
+          } });
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askToAdd')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
+        console.log('askToAdd');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        if (extData.length!==0) {
+          let data = await mongo.find({login: req.body.login})
+          console.log('data');
+          console.log(data);
+          let newAsk = data[0].askToAdd;
+          if (typeof(newAsk)!=='Array') newAsk=[];
+          if (!newAsk.includes(extData[0].login)) 
+          {
+            newAsk.push(extData[0].login)
+            let dataS = await mongo.updateOne({login: req.body.login}, {askToAdd: newAsk} )
+            res.status(200).json({ answer: 'ok' });
+          }
+          else res.status(200).json({answer: 'ok'})
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
+      }
+
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='reg')) {
         console.log('\n\nreg\n\n')
         let extData = await mongo.find({login: req.body.login.trim()})
