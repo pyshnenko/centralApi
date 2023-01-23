@@ -75,6 +75,75 @@ export default async function handler(req, res) {
         else res.status(401).json({err: 'login not found', make: req.headers.make});
       }
 
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='friendshipNo')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('friend'))) {
+        console.log('friendshipNo');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        if (extData.length!==0) {
+          let askToAddArr = extData[0].askToAdd;
+          askToAddArr.splice(extData[0].askToAdd.indexOf(req.body.friend),1);
+          await mongo.updateOne({login: extData[0].login}, {askToAdd: askToAddArr});
+          let data = await mongo.find({token: atoken})
+          console.log('data');
+          console.log(data);
+          delete data._id;
+          delete data.token;
+          delete data.atoken;
+          res.status(200).json({...data});
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='friendshipStart')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('friend'))) {
+        console.log('friendshipStart');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        let extData2 = await mongo.find({login: req.body.friend});
+        if ((extData.length!==0)&&(extData2.length!==0)) {
+          let friendsArr = extData[0].friends;
+          friendsArr.push(req.body.friend);
+          friendsArr.sort();
+          let askToAddArr = extData[0].askToAdd;
+          askToAddArr.splice(extData[0].askToAdd.indexOf(req.body.friend),1);
+          await mongo.updateOne({login: extData[0].login}, {friends: friendsArr, askToAdd: askToAddArr});
+          friendsArr = extData2[0].friends;
+          friendsArr.push(req.body.login);
+          friendsArr.sort();
+          await mongo.updateOne({login: req.body.friend}, {friends: friendsArr});
+          let data = await mongo.find({token: atoken})
+          console.log('data');
+          console.log(data);
+          delete data._id;
+          delete data.token;
+          delete data.atoken;
+          res.status(200).json({...data});
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='friendshipEnd')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('friend'))) {
+        console.log('friendshipEnd');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        let extData2 = await mongo.find({login: req.body.friend});
+        if ((extData.length!==0)&&(extData2.length!==0)) {
+          let friendsArr = extData[0].friends;
+          friendsArr.splice(extData[0].friends.indexOf(req.body.friend),1);
+          await mongo.updateOne({login: extData[0].login}, {friends: friendsArr});
+          friendsArr = extData2[0].friends;
+          friendsArr.splice(extData[0].friends.indexOf(req.body.login),1);
+          await mongo.updateOne({login: req.body.friend}, {friends: friendsArr});
+          let data = await mongo.find({token: atoken})
+          console.log('data');
+          console.log(data);
+          delete data._id;
+          delete data.token;
+          delete data.atoken;
+          res.status(200).json({...data});
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
+      }
+
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askToAdd')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
         console.log('askToAdd');
         let atoken=req.headers.authorization.substr(7)
