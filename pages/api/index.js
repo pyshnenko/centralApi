@@ -123,19 +123,17 @@ export default async function handler(req, res) {
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='friendshipEnd')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('friend'))) {
         console.log('friendshipEnd');
-        let atoken=req.headers.authorization.substr(7)
-        let extData = await mongo.find({token: atoken})
+        let atoken=req.headers.authorization.substr(7);
+        let extData = await mongo.find({token: atoken});
         let extData2 = await mongo.find({login: req.body.friend});
         if ((extData.length!==0)&&(extData2.length!==0)) {
           let friendsArr = extData[0].friends;
           friendsArr.splice(extData[0].friends.indexOf(req.body.friend),1);
           await mongo.updateOne({login: extData[0].login}, {friends: friendsArr});
           friendsArr = extData2[0].friends;
-          friendsArr.splice(extData[0].friends.indexOf(req.body.login),1);
+          friendsArr.splice(extData[0].friends.indexOf(extData[0].login),1);
           await mongo.updateOne({login: req.body.friend}, {friends: friendsArr});
-          let data = await mongo.find({token: atoken})
-          console.log('data');
-          console.log(data);
+          let data = await mongo.find({token: atoken});
           delete data._id;
           delete data.token;
           delete data.atoken;
@@ -266,23 +264,24 @@ export default async function handler(req, res) {
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
-          console.log('add')
+          //console.log('add')
           let realLists = [];
           let needUpd = false;      
           let buf;
           if (typeof(req.body)==='string') buf = JSON.parse(req.body);
           else buf = req.body;
           let answ = await mongo.addList(extData[0].login, buf);
-          console.log('\n\n\nset\n\n\n');
-          console.log(buf.accessUsers)
-          console.log(answ);
+          //console.log('\n\n\nset\n\n\n');
+          //console.log(buf.accessUsers)
+          //console.log(answ);
           let resData = [];
           for (let i=0; i<answ[0].lists.length; i++) {
             let row = answ[0].lists[i];
+            //console.log(row)
             let tBuf = await mongo.findLists(row);
             if (tBuf.length!==0) { 
               resData.push(tBuf[0])
-              realLists.push(i);
+              realLists.push(row);
             }
             else needUpd = true;
           }
@@ -296,16 +295,33 @@ export default async function handler(req, res) {
 
         console.log('\nupdList\n')
         let atoken=req.headers.authorization.substr(7)
-        let extData = await mongo.find({token: atoken})
-        if (extData.length!==0) {
-          console.log(req.body.list)
-          try{let answ = await mongo.updList(extData[0].login, req.body.list);}
+        let extData = await mongo.find({token: atoken});
+        //console.log(extData)
+        if ((extData.length!==0)&&(req.body.list)) {
+          //console.log(req.body.list);
+          let answ = [];
+          try{answ = await mongo.updList(extData[0].login, req.body.list);}
           catch(e){console.log('\x1b[31mошибка ебучая блять\x1b[0m')}
-          console.log('answ')
+          //console.log('answ')
+          //console.log(answ);
+          if ((answ[0].access==='friends')||(answ[0].access==='users')) {
+            answ[0].accessUsers.map((log)=>{
+              extData = mongo.find({login: log});
+              extData.then((exDataRes)=>{
+                //console.log(exDataRes);
+                if ((exDataRes.length!==0)&&(!exDataRes[0].lists.includes(answ[0].id))) {
+                  let extBufM = exDataRes[0].lists;
+                  extBufM.push(answ[0].id);
+                  let resM = mongo.updateOne({login: log}, {lists: extBufM});
+                  resM.then((result)=>console.log(result))
+                }
+              });
+            })
+          }
           res.status(200).json({ message: 'list upd', list: req.body.list })
         }
         else res.status(401).json({err: 'login not found', make: req.headers.make})
-        console.log('exit');
+        //console.log('exit');
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='delList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
         let atoken=req.headers.authorization.substr(7)
@@ -313,7 +329,7 @@ export default async function handler(req, res) {
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        console.log(buf)
+        //console.log(buf)
         if (extData.length!==0) {
           if (buf.id!=='') {
             let reee = await mongo.deleteList(Number(buf.id));
@@ -326,7 +342,7 @@ export default async function handler(req, res) {
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='checkMail')&&(req.headers.hasOwnProperty('authorization'))) {
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
-        console.log(extData);
+        //console.log(extData);
         if (extData.length!==0) {
           if ((!extData[0].emailValid)&&(extData[0].email.includes('@'))) {
             await mail.sendMail(extData[0].email, extData[0].login);
@@ -339,14 +355,14 @@ export default async function handler(req, res) {
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updUserData')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
-        console.log(extData);            
+        //console.log(extData);            
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        console.log(buf);
+        //console.log(buf);
         let bufB = {};
         Object.keys(buf).map((key)=>{if ((key!=='_id')&&(key!=='emailValid')&&(key!=='login')) bufB[key]=buf[key]});
-        console.log(bufB);
+        //console.log(bufB);
         if (extData.length!==0) {
           if (buf.id!=='') {
             if (extData[0].email!==buf.email.trim()) buf.emailValid=false;
@@ -379,11 +395,11 @@ export default async function handler(req, res) {
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        console.log(buf)
+        //console.log(buf)
         if (Number(buf.list.id)) {
-          console.log('im here')
+          //console.log('im here')
           let row = await mongo.findLists(Number(buf.list.id));
-          console.log(row)
+          //console.log(row)
           if (row.length!==0) {
             if (row[0].access==='all') {
               let answ = await mongo.updList('', buf.list, true);
@@ -414,13 +430,13 @@ export default async function handler(req, res) {
     else if (req.method==='DELETE') {      
       let buf;
       console.log('\n\n\n\ndelete\n\n\n\n\n');
-      console.log(Object.keys(req))
-      console.log(Object.keys(req.body))
-      console.log(req.body);
-      console.log(typeof(req.body));
+      //console.log(Object.keys(req))
+      //console.log(Object.keys(req.body))
+      //console.log(req.body);
+      //console.log(typeof(req.body));
       if (typeof(req.body)==='string') buf = JSON.parse(req.body);
       else buf = req.body;
-      console.log(buf)
+      //console.log(buf)
       if ((req.headers.make==='lists')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {        
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})

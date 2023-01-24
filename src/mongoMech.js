@@ -60,7 +60,7 @@ class mongoFunc {
     }
 
     async addList(login, list) {
-        //console.log('cList');
+        console.log('cList');
         let bufList;
         //console.log(list)
         if(typeof(list)==='string') bufList=JSON.parse(list);
@@ -79,6 +79,11 @@ class mongoFunc {
             saveData.id=id;
             await listCollection.insertOne(saveData);
             userLogin = await collection.find({ login: login }).toArray();
+            //console.log('\n\n82\n\n');
+            //console.log(typeof(userLogin[0].lists));
+            //console.log(userLogin[0].lists);
+            if (typeof(userLogin[0].lists)!==typeof([])) userLogin[0].lists=[];
+            //console.log(userLogin[0].lists);
             userLogin[0].lists.push(id);
             //console.log(userLogin);
             if (list.accessUsers.lenght===0) {
@@ -89,6 +94,7 @@ class mongoFunc {
             else {
                 list.accessUsers.map(async(num)=>{
                     let bUser = await collection.find({ login: num }).toArray();
+                    if (typeof(bUser[0].lists)!=='object') bUser[0].lists=[];
                     bUser[0].lists.push(id);
                     await collection.updateOne(
                         {login: num}, 
