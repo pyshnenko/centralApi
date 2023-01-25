@@ -181,11 +181,19 @@ export default async function handler(req, res) {
             email: req.body.email.trim(),
             emailValid: false,
             settings: {
-              autosave: false
+              autosave: false,
+              edit: false,
+              animation: 0,
+              grow: false,
+              askToDel: false,
+              sharedMode: 'me',
+              pageSave: true,
+              localSave: true
             },
             telegram: '',
             lists: [],
             friends: [],
+            askToAdd: []
           });
           res.status(200).json({ method: req.method, headers: req.headers, token: token, atoken: atoken })
         }
@@ -296,27 +304,20 @@ export default async function handler(req, res) {
         console.log('\nupdList\n')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
-        //console.log(extData)
         if ((extData.length!==0)&&(req.body.list)) {
-          //console.log(req.body.list);
           let answ = [];
           try{answ = await mongo.updList(extData[0].login, req.body.list);}
           catch(e){console.log('\x1b[31mошибка ебучая блять\x1b[0m')}
-          //console.log('answ')
-          //console.log(answ);
           if ((answ[0].access==='friends')||(answ[0].access==='users')) {
-            answ[0].accessUsers.map((log)=>{
-              extData = mongo.find({login: log});
-              extData.then((exDataRes)=>{
-                //console.log(exDataRes);
-                if ((exDataRes.length!==0)&&(!exDataRes[0].lists.includes(answ[0].id))) {
-                  let extBufM = exDataRes[0].lists;
+            for (let i=0; i<answ[0].accessUsers.length; i++) {
+              let log = answ[0].accessUsers[i];
+              extData = await mongo.find({login: log.trim()});
+                if ((extData.length!==0)&&(!extData[0].lists.includes(answ[0].id))) {
+                  let extBufM = extData[0].lists;
                   extBufM.push(answ[0].id);
-                  let resM = mongo.updateOne({login: log}, {lists: extBufM});
-                  resM.then((result)=>console.log(result))
+                  let resM = await mongo.updateOne({login: log}, {lists: extBufM});
                 }
-              });
-            })
+            }
           }
           res.status(200).json({ message: 'list upd', list: req.body.list })
         }
@@ -365,7 +366,7 @@ export default async function handler(req, res) {
         //console.log(bufB);
         if (extData.length!==0) {
           if (buf.id!=='') {
-            if (extData[0].email!==buf.email.trim()) buf.emailValid=false;
+            if (buf.email&&(extData[0].email!==buf.email.trim())) buf.emailValid=false;
             await mongo.updateOne({login: extData[0].login}, buf);
             let reee = await mongo.find({token: atoken});
             res.status(200).json({data: reee});
