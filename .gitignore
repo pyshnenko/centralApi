@@ -2,6 +2,8 @@
 .env*
 /src/sert*
 /pages/pict*
+/uploads*
+/pict*
 
 # dependencies
 /node_modules
