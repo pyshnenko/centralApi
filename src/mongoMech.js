@@ -62,28 +62,28 @@ class mongoFunc {
     async addList(login, list) {
         console.log('cList');
         let bufList;
-        //console.log(list)
+        console.log(list)
         if(typeof(list)==='string') bufList=JSON.parse(list);
         else bufList=list;
-        //console.log(bufList)
+        console.log(bufList)
         let userLogin;
         try {
             await mongoClient.connect();
             let id = 0;
             let buf = await listCollection.find().toArray();
-            //console.log(buf)
-            //console.log(typeof(buf[buf.length-1].id))
-            //console.log(buf.length)
+            console.log(buf)
+            console.log(typeof(buf[buf.length-1].id))
+            console.log(buf.length)
             if (buf.length!==0) id = buf[buf.length-1].id+1;
             let saveData = {...bufList};
             saveData.id=id;
             await listCollection.insertOne(saveData);
             userLogin = await collection.find({ login: login }).toArray();
-            //console.log('\n\n82\n\n');
-            //console.log(typeof(userLogin[0].lists));
-            //console.log(userLogin[0].lists);
+            console.log('\n\n82\n\n');
+            console.log(typeof(userLogin[0].lists));
+            console.log(userLogin[0].lists);
             if (typeof(userLogin[0].lists)!==typeof([])) userLogin[0].lists=[];
-            //console.log(userLogin[0].lists);
+            console.log(userLogin[0].lists);
             userLogin[0].lists.push(id);
             //console.log(userLogin);
             if (list.accessUsers.lenght===0) {
@@ -91,15 +91,13 @@ class mongoFunc {
                     {login: login}, 
                     {$set: {lists: userLogin[0].lists} });
             }
-            else {
-                list.accessUsers.map(async(num)=>{
-                    let bUser = await collection.find({ login: num }).toArray();
-                    if (typeof(bUser[0].lists)!=='object') bUser[0].lists=[];
-                    bUser[0].lists.push(id);
-                    await collection.updateOne(
-                        {login: num}, 
-                        {$set: {lists: bUser[0].lists} });
-                })
+            else for (let i=0; i<list.accessUsers.length; i++ ) {
+                let bUser = await collection.find({ login: list.accessUsers[i] }).toArray();
+                if (typeof(bUser[0].lists)!=='object') bUser[0].lists=[];
+                bUser[0].lists.push(id);
+                await collection.updateOne(
+                    {login: list.accessUsers[i]}, 
+                    {$set: {lists: bUser[0].lists} });            
             }
             userLogin = await collection.find({login: login}).toArray();
             //console.log(userLogin)
