@@ -188,7 +188,10 @@ export default async function handler(req, res) {
               askToDel: false,
               sharedMode: 'me',
               pageSave: true,
-              localSave: true
+              localSave: true,
+              mobileAnimation: true,
+              mobileLogo: false,
+              neonLogo: true
             },
             telegram: '',
             lists: [],
@@ -279,9 +282,9 @@ export default async function handler(req, res) {
           if (typeof(req.body)==='string') buf = JSON.parse(req.body);
           else buf = req.body;
           let answ = await mongo.addList(extData[0].login, buf);
-          //console.log('\n\n\nset\n\n\n');
-          //console.log(buf.accessUsers)
-          //console.log(answ);
+          console.log('\n\n\nset\n\n\n');
+          console.log(buf.accessUsers)
+          console.log(answ);
           let resData = [];
           for (let i=0; i<answ[0].lists.length; i++) {
             let row = answ[0].lists[i];
