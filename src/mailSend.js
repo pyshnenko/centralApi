@@ -36,14 +36,20 @@ class mailFunction {
     }
 
     async cryptHash(hash) {
-        let ciphertext = encodeURIComponent(await CryptoJS.AES.encrypt(hash, sKey).toString());
+        console.log(hash);
+        let buf = hash.toString();
+        let ciphertext = encodeURIComponent(await CryptoJS.AES.encrypt(buf, sKey).toString());
         console.log(ciphertext);
         return ciphertext;
     }
 
     async decryptHash(ciphertext) {
+        console.log(ciphertext);
+        console.log(decodeURIComponent(ciphertext))
         let bytes = await CryptoJS.AES.decrypt(decodeURIComponent(ciphertext), sKey);
+        console.log(bytes);
         let originalText = await bytes.toString(CryptoJS.enc.Utf8);
+        console.log(originalText);
         return originalText;
     }
 

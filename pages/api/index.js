@@ -51,6 +51,34 @@ export default async function handler(req, res) {
         else res.status(401).json({err: 'login not found', make: req.headers.make});
       }
 
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='unLoginAdm')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('hash'))) {
+        console.log('unloginAdm');
+        console.log(req.body.hash);
+        let id = await mail.decryptHash(req.body.hash);
+        console.log(id);
+        if (id) {
+          console.log(true);
+          let extData = await mongo.findLists(Number(id));
+          if (extData.length!==0) {
+            res.status(200).json({data: extData});
+          }
+          else res.status(401).json({err: 'id not found', make: req.headers.make});
+        }
+        else res.status(401).json({err: 'id incorrect', make: req.headers.make});
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='setHash')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('id'))) {
+        console.log('usersList');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        if (extData.length!==0) {
+          console.log(typeof(req.body.id))
+          let hash = await mail.cryptHash(req.body.id);
+          res.status(200).json({ hash });
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
+      }
+
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askUserData')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
         console.log('askUserData');
         let atoken=req.headers.authorization.substr(7)
@@ -415,8 +443,29 @@ export default async function handler(req, res) {
         }
         else res.status(402).json({error: 'incorrect', make: req.headers.make});
       }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updAUList')&&(req.hasOwnProperty('body'))) {
+        console.log('\n\nupdAUList\n\n')
+        let buf;
+        if (typeof(req.body)==='string') buf = JSON.parse(req.body);
+        else buf = req.body;
+        //console.log(buf)
+        if (Number(buf.list.id)) {
+          //console.log('im here')
+          let row = await mongo.findLists(Number(buf.list.id));
+          //console.log(row)
+          if (row.length!==0) {
+            let answ = await mongo.updList('', buf.list, true);
+            res.status(200).json({res: answ});
+          }
+          else res.status(401).json({error: 'no list', make: req.headers.make});
+        }
+        else res.status(402).json({error: 'incorrect', make: req.headers.make});
+      }
+
       else res.status(401).json({error: 'not ok', make: req.headers.make});
     }    
+
     else if (req.method==='GET') {
       if (((Object.keys(req.query)).includes('name'))&&((Object.keys(req.query)).includes('addr'))) {
         let buf = await mail.decryptHash(req.query.name);
