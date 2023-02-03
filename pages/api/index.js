@@ -51,6 +51,22 @@ export default async function handler(req, res) {
         else res.status(401).json({err: 'login not found', make: req.headers.make});
       }
 
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='unSumLoginAdm')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('hash'))) {
+        console.log('unSumLoginAdm');
+        console.log(req.body.hash);
+        let id = await mail.decryptHash(req.body.hash);
+        console.log(id);
+        if (id) {
+          console.log(true);
+          let extData = await mongo.findSumLists(Number(id));
+          if (extData.length!==0) {
+            res.status(200).json({data: extData});
+          }
+          else res.status(401).json({err: 'id not found', make: req.headers.make});
+        }
+        else res.status(401).json({err: 'id incorrect', make: req.headers.make});
+      }
+
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='unLoginAdm')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('hash'))) {
         console.log('unloginAdm');
         console.log(req.body.hash);
@@ -65,6 +81,34 @@ export default async function handler(req, res) {
           else res.status(401).json({err: 'id not found', make: req.headers.make});
         }
         else res.status(401).json({err: 'id incorrect', make: req.headers.make});
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='saveSumList')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
+        console.log('usersList');
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        if (extData.length!==0) {
+          let bodyBuf = req.body;
+          if (typeof(req.body)==='string') bodyBuf=JSON.parse(req.body);
+          let result; 
+          if (bodyBuf.id!==0) {
+            result = await mongo.updSumList(extData[0].login, bodyBuf);
+            if (result.res) {
+              let hash = await mail.cryptHash(bodyBuf.id);
+              res.status(200).json({ hash, list: result.user });
+            }
+            else res.status(401).json({err: 'ERROR with db', make: req.headers.make});
+          }
+          else {
+            result = await mongo.addSumList(extData[0].login, bodyBuf);
+            if (result.res) {
+              let hash = await mail.cryptHash(result.id);
+              res.status(200).json({ id: result.id, hash, user: result.user });
+            }
+            else res.status(401).json({err: 'ERROR with db', make: req.headers.make});
+          }
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make});
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='setHash')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('id'))) {
@@ -223,6 +267,7 @@ export default async function handler(req, res) {
             },
             telegram: '',
             lists: [],
+            sumLists: [],
             friends: [],
             askToAdd: []
           });
@@ -264,10 +309,6 @@ export default async function handler(req, res) {
         let extData = await mongo.find({token: atoken})
         let realLists = [];
         let needUpd = false;
-        console.log('atoken')
-        console.log(atoken)
-        console.log('extData.length')
-        console.log(extData.length)
         if (extData.length!==0) {
           if ((extData[0].hasOwnProperty('lists'))&&(extData[0].lists.length!==0)) {
             let resData = [];
@@ -277,12 +318,16 @@ export default async function handler(req, res) {
               console.log(tBuf)
               if (tBuf.length!==0) {
                 if ((tBuf[0].hasOwnProperty('accessUsers'))&&((tBuf[0].accessUsers!==null)&&(tBuf[0].accessUsers.includes(extData[0].login)))||((tBuf[0].hasOwnProperty('access'))&&(tBuf[0].access==='all'))) {
-                  resData.push(tBuf[0])
-                  realLists.push(row);
+                  if (!realLists.includes(row)) {
+                    resData.push(tBuf[0])
+                    realLists.push(row);
+                  }
                 }
                 else if (!tBuf[0].hasOwnProperty('accessUsers')) {
-                  resData.push(tBuf[0])
-                  realLists.push(row);
+                  if (!realLists.includes(row)) {
+                    resData.push(tBuf[0])
+                    realLists.push(row);
+                  }
                 }
               }
               else needUpd = true;
@@ -291,6 +336,38 @@ export default async function handler(req, res) {
             console.log(realLists);
             if (needUpd) mongo.updateOne({login: extData[0].login}, {lists: realLists})
             res.status(200).json({ lists: resData })
+          }
+          else 
+          res.status(200).json({lists: [{name: 'Тестовый лист', author: 'nop', data: []}]})
+        }
+        else res.status(401).json({err: 'login not found', make: req.headers.make})
+      }else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='sumLists')&&(req.headers.hasOwnProperty('authorization')))
+      {
+        console.log('\n\sumLists\n\n')
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken})
+        let realLists = [];
+        let needUpd = false;
+        if (extData.length!==0) {
+          if ((extData[0].hasOwnProperty('lists'))&&(extData[0].sumLists.length!==0)) {
+            let resData = [];
+            for (let i=0; i<extData[0].sumLists.length; i++) {
+              let row = extData[0].sumLists[i];
+              let tBuf = await mongo.findSumLists(row);
+              console.log(tBuf)
+              if (tBuf.length!==0) {                
+                if (!realLists.includes(row)) {
+                  tBuf[0].hash = await mail.cryptHash(tBuf[0].id);
+                  resData.push(tBuf[0])
+                  realLists.push(row);
+                }
+              }
+              else needUpd = true;
+            }
+            console.log('lists111222: ');
+            console.log(realLists);
+            if (needUpd) mongo.updateOne({login: extData[0].login}, {sumLists: realLists})
+            res.status(200).json({ sumLists: resData })
           }
           else 
           res.status(200).json({lists: [{name: 'Тестовый лист', author: 'nop', data: []}]})
@@ -371,6 +448,22 @@ export default async function handler(req, res) {
         }
         else res.status(401).json({error: 'unautorized', make: req.headers.make})
       }
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='delSumList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});            
+        let buf;
+        if (typeof(req.body)==='string') buf = JSON.parse(req.body);
+        else buf = req.body;
+        //console.log(buf)
+        if (extData.length!==0) {
+          if (buf.id!=='') {
+            let reee = await mongo.deleteSumList(Number(buf.id));
+            res.status(200).json({res: reee});
+          }
+          else res.status(402).json({res: 'incorrect', make: req.headers.make});
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='checkMail')&&(req.headers.hasOwnProperty('authorization'))) {
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
@@ -438,6 +531,25 @@ export default async function handler(req, res) {
               res.status(200).json({res: answ});
             }
             else res.status(402).json({error: 'access denied', make: req.headers.make});
+          }
+          else res.status(401).json({error: 'no list', make: req.headers.make});
+        }
+        else res.status(402).json({error: 'incorrect', make: req.headers.make});
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updASumUList')&&(req.hasOwnProperty('body'))) {
+        console.log('\n\n updASumUList\n\n')
+        let buf;
+        if (typeof(req.body)==='string') buf = JSON.parse(req.body);
+        else buf = req.body;
+        //console.log(buf)
+        if (Number(buf.list.id)) {
+          //console.log('im here')
+          let row = await mongo.findSumLists(Number(buf.list.id));
+          //console.log(row)
+          if (row.length!==0) {
+            let answ = await mongo.updSumList('', buf.list, true);
+            res.status(200).json({res: answ});
           }
           else res.status(401).json({error: 'no list', make: req.headers.make});
         }

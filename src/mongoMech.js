@@ -3,13 +3,15 @@ let mongoClient;
 let db;
 let collection;
 let listCollection;
+let sumListCollection;
 
 class mongoFunc {
     constructor(uri) {
         mongoClient = new MongoClient(uri);
         db = mongoClient.db("usersdbList");
         collection = db.collection("usersLData");
-        listCollection = db.collection("listsData")
+        listCollection = db.collection("listsData");
+        sumListCollection = db.collection("sumListsData");
     }
 
     async find(obj) {
@@ -71,19 +73,12 @@ class mongoFunc {
             await mongoClient.connect();
             let id = 0;
             let buf = await listCollection.find().toArray();
-            console.log(buf)
-            console.log(typeof(buf[buf.length-1].id))
-            console.log(buf.length)
             if (buf.length!==0) id = buf[buf.length-1].id+1;
             let saveData = {...bufList};
             saveData.id=id;
             await listCollection.insertOne(saveData);
             userLogin = await collection.find({ login: login }).toArray();
-            console.log('\n\n82\n\n');
-            console.log(typeof(userLogin[0].lists));
-            console.log(userLogin[0].lists);
             if (typeof(userLogin[0].lists)!==typeof([])) userLogin[0].lists=[];
-            console.log(userLogin[0].lists);
             userLogin[0].lists.push(id);
             //console.log(userLogin);
             if (list.accessUsers.lenght===0) {
@@ -108,6 +103,47 @@ class mongoFunc {
             return userLogin;
         }
 
+    }
+
+    async addSumList(login, list) {
+        console.log('sumcList');
+        let bufList;
+        console.log(list)
+        if(typeof(list)==='string') bufList=JSON.parse(list);
+        else bufList=list;
+        console.log(bufList)
+        let userLogin;
+        let succ = true;
+        let id = 0;
+        try {
+            await mongoClient.connect();
+            let buf = await sumListCollection.find().toArray();
+            console.log(buf)
+            console.log(buf.length)
+            if (buf.length!==0) id = buf[buf.length-1].id+1;
+            let saveData = {...bufList};
+            saveData.id=id;
+            saveData.saved = true;
+            await sumListCollection.insertOne(saveData);
+            userLogin = await collection.find({ login: login }).toArray();
+            console.log('\n\n82\n\n');
+            console.log(typeof(userLogin[0].lists));
+            console.log(userLogin[0].lists);
+            if (typeof(userLogin[0].sumLists)!==typeof([])) userLogin[0].sumLists=[];
+            console.log(userLogin[0].sumLists);
+            userLogin[0].sumLists.push(id);
+            //console.log(userLogin);
+            await collection.updateOne(
+                {login: login}, 
+                {$set: {sumLists: userLogin[0].sumLists} });
+            userLogin = await collection.find({login: login}).toArray();
+            //console.log(userLogin)
+        }catch(e){
+            succ = false;
+        } finally {
+            await mongoClient.close();
+            return {res: succ, id, user: userLogin}
+        }
     }
 
     async updList(login, list, unlog) {
@@ -135,6 +171,35 @@ class mongoFunc {
             await mongoClient.close();
             if (!unlog) await this.insUpdList(userLogin);
             return userLogin;
+        }
+
+    }
+
+    async updSumList(login, list) {
+        console.log('\x1b[32muList\x1b[0m');
+        let bufList;
+        //console.log(list)
+        if(typeof(list)==='string') bufList=JSON.parse(list);
+        else bufList=list;
+        //console.log(bufList.id)
+        //console.log(bufList.author)
+        //console.log(bufList.name)
+        let userLogin;
+        let res = true;
+        try {
+            await mongoClient.connect();
+            await sumListCollection.updateOne(
+                {id: Number(bufList.id)}, 
+                {$set: {data: bufList.data}});
+            userLogin = await sumListCollection.find({id: Number(bufList.id)}).toArray();
+            console.log(userLogin);
+            console.log('userLogin');
+        }catch(e){
+            res = false;
+        } finally {
+            console.log('close');
+            await mongoClient.close();
+            return { res, list: userLogin }
         }
 
     }
@@ -221,6 +286,20 @@ class mongoFunc {
         }
     }
 
+    async findSumLists(id) {
+        let extBuf = [];
+        try {
+            await mongoClient.connect();
+            extBuf = await sumListCollection.find({id: id}).toArray();
+        }catch(err) {
+            console.log(err)
+            extBuf=[{mes: 'error'}];
+        } finally {
+            await mongoClient.close();
+            return extBuf;
+        }
+    }
+
     async deleteList(id) {
         try {
             await mongoClient.connect();
@@ -230,6 +309,19 @@ class mongoFunc {
         } finally {
             await mongoClient.close();
             return true;
+        }
+    }
+
+    async deleteSumList(id) {
+        let res = true;
+        try {
+            await mongoClient.connect();
+            await sumListCollection.deleteOne({id: id});
+        } catch(e) {
+            res = false;
+        } finally {
+            await mongoClient.close();
+            return res;
         }
     }
 
