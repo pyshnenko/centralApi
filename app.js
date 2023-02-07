@@ -2,7 +2,7 @@ const express = require("express");
 const multer  = require("multer");
 const cors = require('cors');
 const fs = require('fs');
-  
+process.title='APIServer';
 const app = express();
 
 app.use(cors())
