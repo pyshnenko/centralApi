@@ -71,14 +71,7 @@ bot.on('callback_query', async (ctx) => {
                 session.token = res.data.token;
                 console.log(res.data);
                 console.log('\n\n72\n\n')
-                /*res = await sendPost({ login: session.reg.login, pass: session.reg.pass }, 'login', '');
-                session.token = res.data.token;
-                console.log(res.data);
-                res = await sendPost({telegram: ctx.from.username, telegramID: ctx.from.id, telegramValid: true}, 'updUserData', `Bearer ${res.data.token}`);
-                console.log(res.data);
-                delete(session.reg);
-                ctx.session=session;*/
-                //startKeyboard(ctx);
+                ctx.reply('Для начала работы нажми "Старт" (/start)')
                 break;
             }
 
@@ -101,21 +94,21 @@ bot.on('callback_query', async (ctx) => {
             }
 
             case 'dellist:' : {
-                let ind = Number(ctx.callbackQuery.data.slice(ctx.callbackQuery.data[8]===S?9:8));
+                let ind = Number(ctx.callbackQuery.data.slice(ctx.callbackQuery.data[8]==='S'?9:8));
                 ctx.replyWithHTML(
                     'Уверены?',
                     Markup.inlineKeyboard([
-                        Markup.button.callback(`${okLbl}Да`, `delListYS${ind}`),
-                        Markup.button.callback(`${nokLbl}Нет`, `myList::S${ind}`)
+                        Markup.button.callback(`${okLbl}Да`, `delListY${ctx.callbackQuery.data[8]==='S'?'S':''}${ind}`),
+                        Markup.button.callback(`${nokLbl}Нет`, `myList::${ctx.callbackQuery.data[8]==='S'?'S':''}${ind}`)
                     ], {columns: 2})
                 );
                 break;
             }
 
             case 'delListY' : {
-                let ind = Number(ctx.callbackQuery.data.slice(ctx.callbackQuery.data[8]===S?9:8));
-                let id = ctx.callbackQuery.data[8]===S?Number(session.slists[ind].id):Number(session.lists[ind].id);
-                let res = await sendPost({id: id}, ctx.callbackQuery.data[8]===S?'delSumList':'delList', `Bearer ${session.token}`);
+                let ind = Number(ctx.callbackQuery.data.slice(ctx.callbackQuery.data[8]==='S'?9:8));
+                let id = ctx.callbackQuery.data[8]==='S'?Number(session.slists[ind].id):Number(session.lists[ind].id);
+                let res = await sendPost({id: id}, ctx.callbackQuery.data[8]==='S'?'delSumList':'delList', `Bearer ${session.token}`);
                 if (res.status===200) session.lists.splice(ind, 1);
             }
 
