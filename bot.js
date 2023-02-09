@@ -56,6 +56,44 @@ bot.on('callback_query', async (ctx) => {
         console.log(ctx.callbackQuery.data.slice(0,8));
         console.log(ctx.callbackQuery.data.slice(8));
         switch (ctx.callbackQuery.data.slice(0,8)) {
+
+            case 'register' : {
+                session.status = 'register';
+                session.reg = {make: 'login', login: '', name: '', first_name: '', last_name: '', email: '', fPass: '', pass: ''};
+                ctx.reply('Придумай логин');
+                break;
+            }
+
+            case 'yesRegS' : {
+                session.status = 'work';
+                delete(session.reg.make);
+                let res = await sendPost({...session.reg, telegram: ctx.from.username, telegramID: ctx.from.id, telegramValid: true}, 'reg', '' );
+                session.token = res.data.token;
+                console.log(res.data);
+                console.log('\n\n72\n\n')
+                /*res = await sendPost({ login: session.reg.login, pass: session.reg.pass }, 'login', '');
+                session.token = res.data.token;
+                console.log(res.data);
+                res = await sendPost({telegram: ctx.from.username, telegramID: ctx.from.id, telegramValid: true}, 'updUserData', `Bearer ${res.data.token}`);
+                console.log(res.data);
+                delete(session.reg);
+                ctx.session=session;*/
+                //startKeyboard(ctx);
+                break;
+            }
+
+            case 'noRegS' : {
+                session.status = '';
+                delete(session.reg);
+                await ctx.replyWithHTML(
+                    'Не могу Вас опознать\n\nМы знакомы?',
+                    Markup.inlineKeyboard([
+                        Markup.button.callback('У меня есть аккаунт', `connect`),
+                        Markup.button.callback('Зарегистрироваться', `register`)
+                    ], {columns: 1}))
+                break;
+            }
+
             case 'connect' : {
                 ctx.reply(`Пришли мне свой логин`);
                 session.status='login';
@@ -296,6 +334,72 @@ bot.on('text', async (ctx) => {
             }
             else ('Что-то с сервером. Попробуйте позднее');
             console.log(res.data);
+        }
+
+        else if (ctx.session.status==='register') {
+            if (ctx.session.reg.make==='login') {
+                let login = ctx.message.text.trim();
+                let promis = await sendPost({login: login}, 'checkLogin', '');
+                if (promis.data.result==='buzy') {
+                    ctx.reply('Логин занят. Попробуй другой');
+                }
+                else {
+                    session.reg.login = login;
+                    session.reg.make='fPass';
+                    ctx.reply('Введи пароль');
+                }
+            }
+
+            else if (ctx.session.reg.make==='fPass') {
+                session.reg.fPass = ctx.message.text.trim();
+                session.reg.make='lPass';
+                ctx.reply('Еще раз введи пароль');
+            }
+
+            else if (ctx.session.reg.make==='lPass') {
+                if (session.reg.fPass === ctx.message.text.trim()) {
+                    session.reg.pass=session.reg.fPass;
+                    delete(session.reg.fPass);
+                    session.reg.make='name'
+                    ctx.reply('Введи имя');
+                }
+                else {
+                    session.reg.make='fPass';
+                    ctx.reply('Пароли не совпадают. Введи пароль еще раз');
+                }
+            }
+
+            else if (ctx.session.reg.make==='name') {
+                session.reg.make='last_name';
+                session.reg.name=ctx.message.text.trim();  
+                ctx.reply('Введи фамилию или пришли 0');              
+            }
+
+            else if (ctx.session.reg.make==='last_name') {
+                if (ctx.message.text.trim()!=='0')
+                    session.reg.last_name=ctx.message.text.trim(); 
+                session.reg.make='first_name';      
+                ctx.reply('Введи отчество или пришли 0');          
+            }
+
+            else if (ctx.session.reg.make==='first_name') {
+                if (ctx.message.text.trim()!=='0')
+                    session.reg.first_name=ctx.message.text.trim(); 
+                session.reg.make='email';      
+                ctx.reply('Введи email или пришли 0');          
+            }
+
+            else if (ctx.session.reg.make==='email') {
+                if (ctx.message.text.trim()!=='0')
+                    session.reg.email=ctx.message.text.trim(); 
+                session.reg.make='email';      
+                ctx.replyWithHTML(`Проверяем информацию:\nЛогин: ${session.reg.login}\nИмя: ${session.reg.name}\n Фамилия: ${session.reg.last_name}\nОтчество: ${session.reg.first_name}\nemail: ${session.reg.email}`,
+                    Markup.inlineKeyboard([
+                        Markup.button.callback(`${okLbl}Да`, 'yesRegS'),
+                        Markup.button.callback(`${nokLbl}Нет`, 'noRegS')
+                    ], {columns: 2})
+                )
+            }
         }
 
         else if (ctx.session.status==='addRowName') {

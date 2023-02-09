@@ -267,9 +267,9 @@ export default async function handler(req, res) {
               mobileLogo: false,
               neonLogo: true
             },
-            telegram: '',
-            telegramID: 0,
-            telegramValid: false,
+            telegram: req.body.telegram||'',
+            telegramID: req.body.telegramID||0,
+            telegramValid: req.body.telegramValid||false,
             lists: [],
             sumLists: [],
             friends: [],
