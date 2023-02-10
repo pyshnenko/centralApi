@@ -4,6 +4,10 @@ const bot = new Telegraf(process.env.BOTTOKEN);
 const {session} = require('telegraf');
 const { Extra, Markup } = require('telegraf');
 const axios = require('axios');
+const compare = require("./src/modules/compare");
+
+console.log(compare.test());
+//console.log(compare.compareList('a'));
 
 const okLbl='✅ ';
 const nokLbl='❌ ';
@@ -110,6 +114,36 @@ bot.on('callback_query', async (ctx) => {
                 let id = ctx.callbackQuery.data[8]==='S'?Number(session.slists[ind].id):Number(session.lists[ind].id);
                 let res = await sendPost({id: id}, ctx.callbackQuery.data[8]==='S'?'delSumList':'delList', `Bearer ${session.token}`);
                 if (res.status===200) session.lists.splice(ind, 1);
+                trig=false;
+            }
+
+            case 'backLCr' : {
+                if (trig) {
+                    delete(session.compareLists);
+                    trig=false;
+                }
+            }
+            
+
+            case 'sumLCr' : {
+                if (trig) {
+                    if (session.compareLists.length===1) {
+                        ctx.reply('Выбран всего один список. Нет смысла совмещать');
+                        delete(session.compareLists);
+                    }
+                    else {
+                        let arrS = [];
+                        session.compareLists.map((item)=>arrS.push(session.lists[item]));
+                        delete(session.compareLists);
+                        let compRes = compare.compareList(arrS);
+                        console.log(compRes);
+                        console.log('send');
+                        let res = await sendPost(compRes, 'saveSumList', `Bearer ${session.token}`);
+                        console.log('Res');
+                        console.log(res.status);
+                        console.log(res.data);
+                    }
+                }
             }
 
             case 'lists' : {
@@ -127,11 +161,38 @@ bot.on('callback_query', async (ctx) => {
                     listArr.push(Markup.button.callback(nameL, `myListS:${index}`))
                 });
                 listArr.push(Markup.button.callback('Создать новый список', `newList`));
-                listArr.push(Markup.button.callback('Создать совмещенный список', `newSList`));
+                if (session.lists.length) listArr.push(Markup.button.callback('Создать совмещенный список', `newSList`));
                 ctx.replyWithHTML(
                     'Выбери список',
                     Markup.inlineKeyboard(listArr, {columns: 1})
                 );
+                break;
+            }
+
+            case 'newSList' : {
+                let listArr=[];
+                if (session.compareLists) {
+                    let ind = Number(ctx.callbackQuery.data.slice(8));
+                    session.compareLists.push(ind);
+                    session.lists.map((item, index)=>{
+                        if (!session.compareLists.includes(index)) listArr.push(Markup.button.callback(item.name, `newSList${index}`))
+                    })
+                    listArr.push(Markup.button.callback('Собрать', `sumLCr`));
+                    listArr.push(Markup.button.callback('Назад', `backLCr`));
+                    ctx.replyWithHTML(
+                        'Выбери еще список',
+                        Markup.inlineKeyboard(listArr, {columns: 1})
+                    );
+                }
+                else {
+                    session.compareLists = [];
+                    session.lists.map((item, index)=>listArr.push(Markup.button.callback(item.name, `newSList${index}`)));
+                    listArr.push(Markup.button.callback('Назад', `backLCr`));
+                    ctx.replyWithHTML(
+                        'Выбери список',
+                        Markup.inlineKeyboard(listArr, {columns: 1})
+                    );
+                }
                 break;
             }
 
