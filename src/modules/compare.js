@@ -31,7 +31,7 @@ module.exports.compareList = function(...arr) {
         let extObj = {lists, id: 0, saved: false, data: []};
         compArr.name.map((item, index)=>{
             extObj.data.push({
-                name: item, 
+                name: item[0].toLocaleUpperCase()+item.slice(1), 
                 total: compArr.total[index], 
                 sumTotal: compArr.sumTotal[index], 
                 selected: compArr.total[index]===0, 
