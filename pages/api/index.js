@@ -543,6 +543,62 @@ export default async function handler(req, res) {
           res.status(200).json({data: reee});
         }
         else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }      
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='createSerialList')&&(req.headers.hasOwnProperty('authorization'))) {
+        console.log('\x1b[31 createSerialList \x1b[0m')
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});
+        let buf;
+        if (extData.length!==0) {
+          let reee = await mongo.incertOneSerial({login: extData[0].login});
+          if (reee.res) res.status(200).json(reee);
+          else res.status(402).json({error: 'error on insert', make: req.headers.make})
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }       
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='findSerialList')&&(req.headers.hasOwnProperty('authorization'))) {
+        console.log('\x1b[31    findSerialList \x1b[0m')
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});
+        let buf;
+        if (extData.length!==0) {
+          let reee = await mongo.findSerial(extData[0].login);
+          if (reee.res) res.status(200).json(reee);
+          else res.status(402).json({error: 'error on find', make: req.headers.make})
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }    
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updateSerialList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
+        console.log('\x1b[31 updateSerialList \x1b[0m')
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});
+        let buf;
+        if (extData.length!==0) {
+          if (typeof(req.body)==='string') buf = JSON.parse(req.body);
+          else buf = req.body;
+          let reee = await mongo.updateOneSerial(extData[0].login, buf);
+          if (reee.res) res.status(200).json(reee);
+          else res.status(402).json({error: 'error on update', make: req.headers.make})
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }  
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='deleteSerialList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
+        console.log('\x1b[31 deleteSerialList \x1b[0m')
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});
+        let buf;
+        if (extData.length!==0) {
+          if (typeof(req.body)==='string') buf = JSON.parse(req.body);
+          else buf = req.body;
+          let reee = await mongo.deleteSerialsFromList(extData[0].login, buf.category, buf.serials);
+          if (reee.res) res.status(200).json(reee);
+          else res.status(402).json({error: 'error on delete', make: req.headers.make})
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askList')&&(req.hasOwnProperty('body'))) {

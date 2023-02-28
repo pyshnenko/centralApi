@@ -5,9 +5,9 @@ let testEmailAccount = nodemailer.createTestAccount();
 let myURL = 'http://45.89.66.91:8765';
 
 let options = {
-	key: fs.readFileSync("/home/spamigor/next/first/src/privkey.crt"),
-    cert: fs.readFileSync("/home/spamigor/next/first/src/fullchain.crt"),
-	ca: fs.readFileSync("/home/spamigor/next/first/src/chain.crt")
+	key: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/privkey.crt"),
+    cert: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/fullchain.crt"),
+	ca: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/chain.crt")
 };
 
 let transporter = nodemailer.createTransport({

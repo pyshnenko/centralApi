@@ -17,12 +17,12 @@ process.title='TOXA23CM'
 bot.use(session())
 
 bot.start( async (ctx) =>  {
-    await ctx.reply(`Привет ${ctx.from.first_name}`);
     let res = await sendPost({tgID: Number(ctx.from.id)}, 'loginTG', '');
     console.log(res.status);
     let session = {...ctx.session};
     session.start=true;
     if (res.status===401) {
+        await ctx.reply(`Привет ${ctx.from.first_name}`);
         if (session.status==='login') {
             ctx.reply('Введите Ваш логин');
         }
@@ -55,11 +55,15 @@ bot.on('callback_query', async (ctx) => {
     ctx.answerCbQuery();
     ctx.deleteMessage();
     let session = {...ctx.session};
-    if (!session.start) ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
+    if ((!session.start)&&(isEmpty(session))) ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
     else {
         console.log(ctx.callbackQuery.data.slice(0,8));
         console.log(ctx.callbackQuery.data.slice(8));
         switch (ctx.callbackQuery.data.slice(0,8)) {
+
+            case 'seeById' : {
+                startKeyboard(ctx, 'Временно недоступно. Выбери другое');
+            }
 
             case 'register' : {
                 session.status = 'register';
@@ -516,12 +520,12 @@ bot.on('text', async (ctx) => {
 
 bot.launch();
 
-const startKeyboard = (ctx) => {
+const startKeyboard = (ctx, text) => {
     ctx.replyWithHTML(
-        `Привет ${ctx.session.user.login}\n\nЧем займемся?`,
+        (text||`Привет ${ctx.session.user.login}\n\nЧем займемся?`),
         Markup.inlineKeyboard([
             Markup.button.callback('Посмотреть мои списки', `lists`),
-            Markup.button.callback('Найти список по его ID', `seechById`)
+            Markup.button.callback('Найти список по его ID', `seeById`)
         ], {columns: 1}))
 }
 
@@ -570,4 +574,11 @@ const accUsList = (session, shMode) => {
         buf.push(session.user.login);
     }
     return buf; 
+}
+
+function isEmpty(obj) {
+    for (let key in obj) {
+        return false;
+    }
+    return true;
 }

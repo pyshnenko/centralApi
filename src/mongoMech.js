@@ -4,6 +4,7 @@ let db;
 let collection;
 let listCollection;
 let sumListCollection;
+let serialCollection;
 
 class mongoFunc {
     constructor(uri) {
@@ -12,6 +13,7 @@ class mongoFunc {
         collection = db.collection("usersLData");
         listCollection = db.collection("listsData");
         sumListCollection = db.collection("sumListsData");
+        serialCollection = db.collection("serListsData");
     }
 
     async find(obj) {
@@ -33,6 +35,28 @@ class mongoFunc {
         }
     }
 
+    async findSerial(login) {
+        console.log('find serial')
+        let extBuf = [];
+        try {
+            await mongoClient.connect();
+            if (login) {
+                extBuf = await serialCollection.find({login: login}).toArray();
+            }
+            else {
+                extBuf = await serialCollection.find().toArray();
+            }
+            if (extBuf.length!==0) extBuf[0].res = true;
+            else extBuf[0] = {res: false};
+            //console.log(extBuf)
+        }catch(err) {
+            extBuf[0] = {res: false};
+        } finally {
+            await mongoClient.close();
+            return extBuf[0];
+        }
+    }
+
     async incertOne(obj) {
         //console.log('inc');
         try {
@@ -42,6 +66,23 @@ class mongoFunc {
             console.log(err);
         } finally {
             await mongoClient.close();
+        }
+    }
+
+    async incertOneSerial(obj) {
+        //console.log('inc');
+        let extBuf = {};
+        try {
+            await mongoClient.connect();
+            await serialCollection.insertOne(obj);
+            extBuf = await serialCollection.findOne({login: obj.login});
+            if (extBuf) extBuf.res=true;
+            else extBuf = {res: false};
+        }catch(err) {
+            extBuf = {res: false};
+        } finally {
+            await mongoClient.close();
+            return extBuf;
         }
     }
 
@@ -58,6 +99,26 @@ class mongoFunc {
         } finally {
             await mongoClient.close();
             return userLogin
+        }
+    }
+
+    async updateOneSerial(login, obj) {
+        //console.log('upd');
+        let extBuf = {};
+        if (obj.hasOwnProperty('_id')) delete(obj._id);
+        try {
+            await mongoClient.connect();
+            await serialCollection.updateOne(
+                {login}, 
+                {$set: obj});
+            extBuf = await serialCollection.findOne({login});
+            if (extBuf) extBuf.res=true;
+            else extBuf = {res: false};
+        }catch(err) {
+            extBuf = {res: false};
+        } finally {
+            await mongoClient.close();
+            return extBuf;
         }
     }
 
@@ -81,7 +142,7 @@ class mongoFunc {
             if (typeof(userLogin[0].lists)!==typeof([])) userLogin[0].lists=[];
             userLogin[0].lists.push(id);
             //console.log(userLogin);
-            if (list.accessUsers.lenght===0) {
+            if (list.accessUsers.length===0) {
                 await collection.updateOne(
                     {login: login}, 
                     {$set: {lists: userLogin[0].lists} });
@@ -208,7 +269,7 @@ class mongoFunc {
         try {
             console.log('unlog')
             await mongoClient.connect();
-            for (let i=0; i<userLogin[0].accessUsers.lenght;i++) {
+            for (let i=0; i<userLogin[0].accessUsers.length;i++) {
                 console.log('for');
                 let dat = userLogin[0].accessUsers[i];
                 let logData = await collection.find({login: dat}).toArray(); 
@@ -241,7 +302,7 @@ class mongoFunc {
             console.log(err);
         } finally {
             await mongoClient.close();
-            if (extBuf.lenght>0) return extBuf[0].token;
+            if (extBuf.length>0) return extBuf[0].token;
             else return hash;
         }
 
@@ -322,6 +383,33 @@ class mongoFunc {
         } finally {
             await mongoClient.close();
             return res;
+        }
+    }
+
+    async deleteSerialsFromList(login, category, serials) {
+        let ext = {res: false}
+        try {
+            await mongoClient.connect();
+            if (serials.length) {
+                let buf = await serialCollection.findOneAndDelete({login: login});
+                if (buf.value.hasOwnProperty(category)) {
+                    await serials.map((item)=>{
+                        delete(buf.value.list[category][item]);
+                    })
+                    delete(buf.value._id);
+                }
+                if (buf.lastErrorObject.n) {
+                    await serialCollection.insertOne(buf.value);
+                    let extBuf = await serialCollection.find({login: login}).toArray;
+                    ext = {...extBuf[0]};
+                    ext.res=true;
+                }
+            }
+        } catch(e) {
+            ext = {res: false}
+        } finally {
+            await mongoClient.close();
+            return ext;
         }
     }
 
