@@ -11,6 +11,7 @@ let collection;
 mongoClient = new MongoClient(uri);
 db = mongoClient.db("usersdbList");
 collection = db.collection("usersLData");
+let serialCollection = db.collection("serListsData");
 
 console.log('hello');
 
@@ -55,6 +56,7 @@ async function deleteOne(login) {
     try {
         await mongoClient.connect();
         console.log(await collection.findOneAndDelete({login: login}));
+        console.log(await serialCollection.findOneAndDelete({login: login}));
     }catch(err) {
         console.log(err);
     } finally {
