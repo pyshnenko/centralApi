@@ -117,9 +117,9 @@ async function callback_query(ctx) {
                 console.log('\x1b[0m \n');
                 let data = parse(res.data); 
                 let serials = data;
-                serials.list = { 'без категории': {} };
+                serials.list=[ {name: 'без категории', array: []} ];
                 session.serials = serials;
-                res = await sendPost(serials, 'updateSerialList', `Bearer ${session.token}`);
+                res = await sendPost(original(serials), 'updateSerialList', `Bearer ${session.token}`);
                 ctx.replyWithHTML('Выбери категорию:', Markup.inlineKeyboard([
                         Markup.button.callback(`Без категории`, `serList:Без категории`),
                         Markup.button.callback(`Создать категорию`, `crSerCat`),
@@ -327,8 +327,9 @@ async function callback_query(ctx) {
                 res.data.lists.map((item, index)=>listArr.push(Markup.button.callback(item.name, `myList::${index}`)));
                 let res2 = await sendPost({name: ctx.session.user.name}, 'sumLists', `Bearer ${ctx.session.token}`);
                 session.slists=res2.data.sumLists;
-                console.log(res2.data.sumLists[0].lists)
-                res2.data.sumLists.map((item, index)=>{
+                console.log('\n\n\n LOOK HERE \n\n\n')
+                console.log(res2.data);
+                if (res2.data.hasOwnProperty('sumLists')) res2.data.sumLists.map((item, index)=>{
                     let nameL = 'Совмещенный ';
                     item.lists.name.map((item)=>nameL+=`- ${item}`);
                     listArr.push(Markup.button.callback(nameL, `myListS:${index}`))
