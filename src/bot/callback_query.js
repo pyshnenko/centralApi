@@ -189,12 +189,31 @@ async function callback_query(ctx) {
                 let obj = session.serials.list[item[0]].array[item[1]];
                 console.log(obj);
                 ctx.replyWithHTML(`${obj.name}\nСезон: ${obj.s}\nЭпизод: ${obj.e}\nВремя: ${obj.t}\n`, Markup.inlineKeyboard([
+                    Markup.button.callback(`Изменить запись`, `editWeb:${item[0]}&&${item[1]}`),
                     Markup.button.callback(`Изменить сезон`, `edSeaz::${item[0]}&&${item[1]}`),
                     Markup.button.callback(`Изменить эпизод`, `editEp::${item[0]}&&${item[1]}`),
                     Markup.button.callback(`Изменить время`, `edTime::${item[0]}&&${item[1]}`),
                     Markup.button.callback(`Удалить`, `DelSer::${item[0]}&&${item[1]}`),
                     Markup.button.callback(`Назад`, `serList:${item[0]}`)
                 ], {columns: 1} ));
+                break;
+            }
+
+            case 'editWeb:' : {
+
+                let par = ctx.callbackQuery.data.slice(8);
+                let item = par.split('&&');
+                session.tecnicalSub = [Number(item[0]), Number(item[1])]
+                session.status = 'edSeaz::';
+                
+                await ctx.replyWithHTML(
+                    'Перейди для изменения',
+                    Markup.keyboard([
+                    Markup.button.webApp(
+                        "Open",
+                        "https://test.spamigor.site/build/form"
+                    ),
+                ]))
                 break;
             }
 

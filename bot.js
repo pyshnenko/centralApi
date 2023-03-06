@@ -7,6 +7,7 @@ const textHandler = require("./src/bot/message");
 const {startKeyboard, isEmpty, accUsList, okText, nokText} = require("./src/bot/other");
 const sendPost = require('./src/bot/api');
 const callback_query = require('./src/bot/callback_query');
+const {parse, original} = require("./src/bot/listsReorginizer")
 
 const okLbl='✅ ';
 const nokLbl='❌ ';
@@ -38,23 +39,47 @@ bot.start( async (ctx) =>  {
         }
     }
     else if (res.status===200) {
-        console.log(res.data.data);
         session.token=res.data.token;
         session.user=res.data.data[0];
         session.status='work';
         ctx.session=session;
         startKeyboard(ctx);
+
     }
     else ctx.reply('Сервер временно недоступен. Попробуйте позже');
     ctx.session=session;
 });
 
 bot.on('callback_query', async (ctx) => {
+    console.log('callback_query')
     await callback_query(ctx);
 });
 
 bot.on('text', async (ctx) => {
+    console.log('text')
     await textHandler(ctx);
 });
+
+bot.on('web_app_data', async (ctx) => {
+    let session = ctx.session;
+    console.log('web_app_data');
+    let data = JSON.parse(ctx.message.web_app_data.data)
+    console.log(data);
+    session.status = 'work';
+    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s = data.seazon;
+    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e = data.epizod;
+    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t = data.time;
+    delete(session.tecnicalSub);
+    let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
+    if (res.status === 200) {
+        await ctx.reply('Готово', Markup.removeKeyboard(true));
+        startKeyboard(ctx)
+    }
+    else {
+        await ctx.reply('Неудача', Markup.removeKeyboard(true));
+        startKeyboard(ctx);
+    }
+    ctx.session = session;
+})
 
 bot.launch();

@@ -3,9 +3,9 @@ const {session} = require('telegraf');
 const okLbl='✅ ';
 const nokLbl='❌ ';
 
-module.exports.startKeyboard = function(ctx, text) {
+module.exports.startKeyboard = async function(ctx, text) {
     ctx.replyWithHTML(
-        (text||`Привет ${ctx.session.user.login}\n\nЧем займемся?`),
+        (text||`Привет ${ctx.session.user.login}\n\nЧем займемся?`), 
         Markup.inlineKeyboard([
             Markup.button.callback('Посмотреть мои списки', `lists`),
             Markup.button.callback('Найти список по его ID', `seeById`),
