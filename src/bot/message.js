@@ -7,6 +7,7 @@ const nokLbl='❌ ';
 const {parse, original} = require("./listsReorginizer")
 
 async function textHandler(ctx) {
+    let err = false;
     console.log(ctx.message.text);
     let session = {...ctx.session};
     if (session.hasOwnProperty('status')) {
@@ -215,14 +216,22 @@ async function textHandler(ctx) {
         }
 
         else {
-            ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)')
+            ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
+            err = true;
             console.log(ctx.message.text)
         }
     }
 
     else {
-        ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)')
+        ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
+        err = true;
         console.log(ctx.message.text)
+    }
+    ctx.deleteMessage(ctx.message.message_id);
+    
+    if (!err)
+    {
+        ctx.deleteMessage(ctx.message.message_id-1);
     }
     ctx.session=session;
 }

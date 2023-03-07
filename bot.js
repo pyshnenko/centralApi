@@ -66,9 +66,9 @@ bot.on('web_app_data', async (ctx) => {
     let data = JSON.parse(ctx.message.web_app_data.data)
     console.log(data);
     session.status = 'work';
-    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s = data.seazon;
-    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e = data.epizod;
-    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t = data.time;
+    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s = (data.seazon==='0'||Number(data.seazon) ? Number(data.seazon) : data.seazon);
+    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e = (data.epizod==='0'||Number(data.epizod) ? Number(data.epizod) : data.epizod);
+    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t = (data.time==='0'||Number(data.time) ? Number(data.time) : data.time);
     delete(session.tecnicalSub);
     let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
     if (res.status === 200) {

@@ -6,6 +6,7 @@ const compare = require("./../../compare");
 const sendPost = require('./api');
 const {startKeyboard, isEmpty, accUsList, okText, nokText, YorNkeyboard} = require("./other");
 const {parse, original} = require("./listsReorginizer")
+const formUrl = 'https://test.spamigor.site/form'
 
 async function callback_query(ctx) {
     let trig = true;
@@ -205,13 +206,17 @@ async function callback_query(ctx) {
                 let item = par.split('&&');
                 session.tecnicalSub = [Number(item[0]), Number(item[1])]
                 session.status = 'edSeaz::';
-                
+                let sendUri = new URL(formUrl);
+                sendUri.searchParams.append('serialN', encodeURI(session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].name));
+                sendUri.searchParams.append('serialS', encodeURI(session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s));
+                sendUri.searchParams.append('serialE', encodeURI(session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e));
+                sendUri.searchParams.append('serialT', encodeURI(session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t));
                 await ctx.replyWithHTML(
                     'Перейди для изменения',
                     Markup.keyboard([
                     Markup.button.webApp(
                         "Open",
-                        "https://test.spamigor.site/build/form"
+                        sendUri.href
                     ),
                 ]))
                 break;

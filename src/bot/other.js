@@ -4,6 +4,10 @@ const okLbl='✅ ';
 const nokLbl='❌ ';
 
 module.exports.startKeyboard = async function(ctx, text) {
+    let mData = await ctx.reply('Обновим интерфейс', Markup.removeKeyboard(true));
+    console.log(mData);
+    console.log(mData.chat.id);
+    await ctx.deleteMessage(mData.message_id);
     ctx.replyWithHTML(
         (text||`Привет ${ctx.session.user.login}\n\nЧем займемся?`), 
         Markup.inlineKeyboard([
