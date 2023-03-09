@@ -6,13 +6,13 @@ const okLbl='✅ ';
 const nokLbl='❌ ';
 const {parse, original} = require("./listsReorginizer")
 
-async function textHandler(ctx) {
+async function textHandler(ctx, logger) {
     let err = false;
-    console.log(ctx.message.text);
+    logger.trace('text: ' + ctx.from.id + ': ' + ctx.message.text);
     let session = {...ctx.session};
     if (session.hasOwnProperty('status')) {
 
-        console.log(session.status)
+        logger.info(`status: ${ctx.from.id}: ${session.status}`)
 
         if (session.status==='login') {
             let res = await sendPost({login: ctx.message.text.trim(), loginTG: ctx.from.username, id: Number(ctx.from.id)}, 'connectTG', '');
@@ -20,8 +20,10 @@ async function textHandler(ctx) {
                 ctx.replyWithHTML('Данные переданы. Пожалуйста, перейдите на <a href="https://spamigor.site/build/">основной сайт</a>, зайдите в профиль и подтвердите Ваш аккаунт (возле графы "телеграм" нажмите на Х чтобы подтвердить)');
                 session.status='wait';
             }
-            else ('Что-то с сервером. Попробуйте позднее');
-            console.log(res.data);
+            else {
+                ('Что-то с сервером. Попробуйте позднее');
+                logger.error(`Ошибка при запросе к серверу. Статус: ${res.status}, make: connectTG`)
+            }
         }
 
         else if (ctx.session.status==='categoryName') {
@@ -180,7 +182,6 @@ async function textHandler(ctx) {
             let buf = Number(ctx.message.text.trim());
             if (buf||buf===0) {
                 session.addRow.total = buf;
-                console.log(buf)
                 session.status = 'addRowInd';
                 ctx.session=session;
                 ctx.replyWithHTML ('Выбери величину', Markup.inlineKeyboard([
@@ -211,27 +212,36 @@ async function textHandler(ctx) {
                 'Выбери список',
                 Markup.inlineKeyboard(listArr, {columns: 1})
             );
+        }
 
-            console.log(res.data)
+        else if (ctx.session.status==='editWeb:') {  
+            session.status = 'work';
+            let mData = await ctx.reply('Обновим интерфейс', Markup.removeKeyboard(true));
+            await ctx.deleteMessage(mData.message_id);
+            ctx.replyWithHTML(`Кажется, вы используете WEB-версию telegram. Воспользуйтесь предложенными вариантами`, Markup.inlineKeyboard([
+                Markup.button.callback(`Изменить сезон`, `edSeaz::${session.tecnicalSub[0]}&&${session.tecnicalSub[1]}`),
+                Markup.button.callback(`Изменить эпизод`, `editEp::${session.tecnicalSub[0]}&&${session.tecnicalSub[1]}`),
+                Markup.button.callback(`Изменить время`, `edTime::${session.tecnicalSub[0]}&&${session.tecnicalSub[1]}`),
+                Markup.button.callback(`Удалить`, `DelSer::${session.tecnicalSub[0]}&&${session.tecnicalSub[1]}`),
+                Markup.button.callback(`Назад`, `serList:${session.tecnicalSub[0]}`)
+            ], {columns: 1} ));
         }
 
         else {
             ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
-            err = true;
-            console.log(ctx.message.text)
+            logger.error(`uncnown error: user: ${ctx.from.id}, ${ctx.from.username}; status: ${session?.status}, message: ${ctx.message.text}`)
         }
     }
 
     else {
         ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
-        err = true;
-        console.log(ctx.message.text)
+        logger.error(`uncnown error: user: ${ctx.from.id}, ${ctx.from.username}; status: ${session?.status}, message: ${ctx.message.text}`)
     }
-    ctx.deleteMessage(ctx.message.message_id);
-    
-    if (!err)
-    {
-        ctx.deleteMessage(ctx.message.message_id-1);
+    for (let i = ctx.message.message_id; (i>0&&i>=ctx.message.message_id-3); i--)  {
+        try {
+            await ctx.deleteMessage(i)
+        }
+        catch(e) {}
     }
     ctx.session=session;
 }

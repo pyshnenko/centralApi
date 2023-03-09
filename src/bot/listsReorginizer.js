@@ -7,12 +7,6 @@ module.exports.parse = function(originalList) {
         }
         arr.push({array: inArr, name: key});
     }
-
-    console.log('\n\n\n\n\n')
-    console.log('parse')
-    console.log({...originalList, list: arr})
-    console.log('\n\n\n\n\n')
-
     return {...originalList, list: arr};
 }
 
@@ -28,10 +22,5 @@ module.exports.original = function(inList) {
         bufObj[item.name] = buf;
     })
     extObj.list = {...bufObj};
-
-    console.log('\n\n\n\n\n')
-    console.log('original')
-    console.log(extObj)
-    console.log('\n\n\n\n\n')
     return extObj;
 }

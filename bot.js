@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require("fs");
 const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOTTOKEN);
 const {session} = require('telegraf');
@@ -7,7 +8,43 @@ const textHandler = require("./src/bot/message");
 const {startKeyboard, isEmpty, accUsList, okText, nokText} = require("./src/bot/other");
 const sendPost = require('./src/bot/api');
 const callback_query = require('./src/bot/callback_query');
-const {parse, original} = require("./src/bot/listsReorginizer")
+const {parse, original} = require("./src/bot/listsReorginizer");
+const delMess = require("./src/bot/historyClear");
+
+let options = {
+    key: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/privkey.crt"),
+    cert: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/fullchain.crt"),
+	ca: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/chain.crt")
+};
+const log4js = require("log4js");
+log4js.configure({
+    appenders: { 
+        bot: { type: "file", filename: "log/bot.log" }, 
+        console: { type: 'console' },
+        mail: {
+            type: '@log4js-node/smtp',
+            recipients: 'pyshnenko94@yandex.ru',
+            sendInterval: 5,
+            transport: 'SMTP',
+            SMTP: {
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
+                key: options.key,
+                cert: options.sert,
+                ca: options.ca,
+                auth: {
+                    user: process.env.MAILUSER,
+                    pass: process.env.MAILPASS,
+                },
+            },
+        },
+    },
+    categories: { default: { appenders: ['console', "bot"], level: "all" },
+                mailer: { appenders: ['mail', 'console', 'bot'], level: 'all' }, },
+  });
+const logger = log4js.getLogger("bot2");
+const mailLog = log4js.getLogger("mailer");
 
 const okLbl='✅ ';
 const nokLbl='❌ ';
@@ -18,7 +55,7 @@ bot.use(session())
 
 bot.start( async (ctx) =>  {
     let res = await sendPost({tgID: Number(ctx.from.id)}, 'loginTG', '');
-    console.log(res.status);
+    logger.trace(res.status);
     let session = {...ctx.session};
     session.start=true;
     if (res.status===401) {
@@ -46,40 +83,64 @@ bot.start( async (ctx) =>  {
         startKeyboard(ctx);
 
     }
-    else ctx.reply('Сервер временно недоступен. Попробуйте позже');
+    else {
+        ctx.reply('Сервер временно недоступен. Попробуйте позже');
+        logger.error('Сервер БД недоступен. Запрос loginTG')
+    }
+    delMess(ctx, ctx.message.message_id, logger);
     ctx.session=session;
 });
 
 bot.on('callback_query', async (ctx) => {
-    console.log('callback_query')
-    await callback_query(ctx);
+    logger.trace('callback_query: ' + ctx.from.id + ": " + ctx.callbackQuery.data)
+    await callback_query(ctx, logger);
+    delMess(ctx, ctx.callbackQuery.message.message_id, logger);
 });
 
 bot.on('text', async (ctx) => {
-    console.log('text')
-    await textHandler(ctx);
+    logger.trace('text: ' + ctx.from.id + ": " + ctx.message.text)
+    await textHandler(ctx, logger);
+    delMess(ctx, ctx.message.message_id, logger);
 });
 
 bot.on('web_app_data', async (ctx) => {
     let session = ctx.session;
-    console.log('web_app_data');
     let data = JSON.parse(ctx.message.web_app_data.data)
-    console.log(data);
+    logger.trace('web_app_data: ' + ctx.from.id + ": " + ctx.message.web_app_data.data);
     session.status = 'work';
-    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s = (data.seazon==='0'||Number(data.seazon) ? Number(data.seazon) : data.seazon);
-    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e = (data.epizod==='0'||Number(data.epizod) ? Number(data.epizod) : data.epizod);
-    session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t = (data.time==='0'||Number(data.time) ? Number(data.time) : data.time);
-    delete(session.tecnicalSub);
-    let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
-    if (res.status === 200) {
-        await ctx.reply('Готово', Markup.removeKeyboard(true));
-        startKeyboard(ctx)
+    if ((data.seazon)&&(data.epizod)&&(data.time)) {
+        session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s = (data.seazon==='0'||Number(data.seazon) ? Number(data.seazon) : data.seazon);
+        session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e = (data.epizod==='0'||Number(data.epizod) ? Number(data.epizod) : data.epizod);
+        session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t = (data.time==='0'||Number(data.time) ? Number(data.time) : data.time);
+        delete(session.tecnicalSub);
+        let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
+        if (res.status === 200) {
+            await ctx.reply('Готово', Markup.removeKeyboard(true));
+            startKeyboard(ctx)
+        }
+        else {
+            await ctx.reply('Неудача', Markup.removeKeyboard(true));
+            startKeyboard(ctx);
+        }
     }
-    else {
-        await ctx.reply('Неудача', Markup.removeKeyboard(true));
-        startKeyboard(ctx);
-    }
+    else ctx.reply('Кажется, вы используете WEB-версию telegram. Воспользуйтесь другими способами изменения данных')
     ctx.session = session;
+    delMess(ctx, ctx.message.message_id, logger);
 })
 
-bot.launch();
+bot.launch(mailLog.info('bot start'));
+
+bot.catch((err)=>console.log(err));
+
+process.on('uncaughtException', (err, origin) => {
+    mailLog.fatal('Все, пиздец')
+});
+
+process.once('SIGINT', () => {
+    bot.stop('SIGINT');
+    logger.fatal('Остановлено SIGINT')
+});
+process.once('SIGTERM', () => {
+    bot.stop('SIGTERM');
+    logger.fatal('Остановлено SIGINT')
+});

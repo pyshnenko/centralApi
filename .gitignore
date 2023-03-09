@@ -4,6 +4,7 @@
 /pages/pict*
 /uploads*
 /pict*
+/log*
 
 # dependencies
 /node_modules

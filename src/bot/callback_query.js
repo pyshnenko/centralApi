@@ -6,17 +6,15 @@ const compare = require("./../../compare");
 const sendPost = require('./api');
 const {startKeyboard, isEmpty, accUsList, okText, nokText, YorNkeyboard} = require("./other");
 const {parse, original} = require("./listsReorginizer")
-const formUrl = 'https://test.spamigor.site/form'
+const formUrl = 'https://spamigor.site/build'
 
-async function callback_query(ctx) {
+async function callback_query(ctx, logger) {
     let trig = true;
     ctx.answerCbQuery();
     ctx.deleteMessage();
     let session = {...ctx.session};
     if ((!session.start)&&(isEmpty(session))) ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
     else {
-        console.log(ctx.callbackQuery.data.slice(0,8));
-        console.log(ctx.callbackQuery.data.slice(8));
         switch (ctx.callbackQuery.data.slice(0,8)) {
 
             case 'delCat::' : {
@@ -32,10 +30,11 @@ async function callback_query(ctx) {
                     session.serials.list.splice(item, 1);
                     let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
                     if (res.status === 200) {
-                        console.log(res.data);
+                        logger.trace(`id: ${ctx.from.id}: api ok`)
                         trig = false;
                     }
                     else {
+                        logger.error(`id: ${ctx.from.id}: api ответил статусом: ${res.status} при команде updateSerialList (${ctx.callbackQuery.data})`)
                         ctx.reply('Что-то пошло не так');
                         break;
                     }
@@ -46,10 +45,11 @@ async function callback_query(ctx) {
                     session.serials.list[item[0]].array.splice(item[1], 1);
                     let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
                     if (res.status === 200) {
-                        console.log(res.data);
+                        logger.trace(`id: ${ctx.from.id}: api ok`)
                         trig = false;
                     }
                     else {
+                        logger.error(`id: ${ctx.from.id}: api ответил статусом: ${res.status} при команде updateSerialList (${ctx.callbackQuery.data})`)
                         ctx.reply('Что-то пошло не так');
                         break;
                     }
@@ -62,11 +62,8 @@ async function callback_query(ctx) {
 
             case 'NOkeyb' : {
                 if (trig) {
-                    console.log(session)
                     let id = session.YorNid;
-                    console.log(id)
                     delete(session.YorNid);
-                    console.log(id)
                     if (id.slice(0,8)==='delCat::') {
                         ctx.reply('Нет так нет');
                     }
@@ -77,8 +74,8 @@ async function callback_query(ctx) {
             case 'serials' : {
                 session.status='serials';
                 let res = await sendPost({login: session.user.login}, 'findSerialList', `Bearer ${session.token}`);
-                console.log(res.data);      
                 if (res.status===402) {
+                    logger.trace(`id: ${ctx.from.id}: Список сериалов не найден, предложено создать`)
                     ctx.replyWithHTML(
                         'Кажется, у вас еще нет списка\n\nСоздадим?',
                         Markup.inlineKeyboard([
@@ -88,11 +85,6 @@ async function callback_query(ctx) {
                         break;
                 }
                 else if (res.status===200) {
-                    console.log('\x1b[34m Ответ: \n')
-                    console.log(res.status);
-                    console.log('\n');
-                    console.log(res.data.list);
-                    console.log('\x1b[0m \n');
                     let data = parse(res.data); 
                     let arr = [];
                     session.serials = data;
@@ -111,11 +103,6 @@ async function callback_query(ctx) {
 
             case 'CrSerial' : {
                 let res = await sendPost({login: session.user.login}, 'createSerialList', `Bearer ${session.token}`);
-                console.log('\x1b[34m Ответ: \n')
-                console.log(res.status);
-                console.log('\n');
-                console.log(res.data);
-                console.log('\x1b[0m \n');
                 let data = parse(res.data); 
                 let serials = data;
                 serials.list=[ {name: 'без категории', array: []} ];
@@ -142,7 +129,6 @@ async function callback_query(ctx) {
             }
 
             case 'serList:' : {
-                console.log('\n\nserList\n\n')
                 let item = Number(ctx.callbackQuery.data.slice(8));
                 let arr = [];
                 session.serials.list[item].array.map((items, index)=>arr.push(Markup.button.callback(`${items.name}`, `serSer::${item}&&${index}`)));
@@ -185,10 +171,7 @@ async function callback_query(ctx) {
                 let itemStr = par.split('&&');
                 let item = [];
                 itemStr.map(str=>item.push(Number(str)));
-                console.log(item);
-                console.log(session.serials);
                 let obj = session.serials.list[item[0]].array[item[1]];
-                console.log(obj);
                 ctx.replyWithHTML(`${obj.name}\nСезон: ${obj.s}\nЭпизод: ${obj.e}\nВремя: ${obj.t}\n`, Markup.inlineKeyboard([
                     Markup.button.callback(`Изменить запись`, `editWeb:${item[0]}&&${item[1]}`),
                     Markup.button.callback(`Изменить сезон`, `edSeaz::${item[0]}&&${item[1]}`),
@@ -205,8 +188,9 @@ async function callback_query(ctx) {
                 let par = ctx.callbackQuery.data.slice(8);
                 let item = par.split('&&');
                 session.tecnicalSub = [Number(item[0]), Number(item[1])]
-                session.status = 'edSeaz::';
+                session.status = 'editWeb:';
                 let sendUri = new URL(formUrl);
+                sendUri.searchParams.append('form', true);
                 sendUri.searchParams.append('serialN', encodeURI(session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].name));
                 sendUri.searchParams.append('serialS', encodeURI(session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s));
                 sendUri.searchParams.append('serialE', encodeURI(session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e));
@@ -270,8 +254,7 @@ async function callback_query(ctx) {
                 delete(session.reg.make);
                 let res = await sendPost({...session.reg, telegram: ctx.from.username, telegramID: ctx.from.id, telegramValid: true}, 'reg', '' );
                 session.token = res.data.token;
-                console.log(res.data);
-                console.log('\n\n72\n\n')
+                logger.info(`Пользователь ${ctx.from.id}, ${ctx.from.username} подал запрос на регистрацию`)
                 ctx.reply('Для начала работы нажми "Старт" (/start)')
                 break;
             }
@@ -333,12 +316,7 @@ async function callback_query(ctx) {
                         session.compareLists.map((item)=>arrS.push(session.lists[item]));
                         delete(session.compareLists);
                         let compRes = compare.compareList(arrS);
-                        console.log(compRes);
-                        console.log('send');
                         let res = await sendPost(compRes, 'saveSumList', `Bearer ${session.token}`);
-                        console.log('Res');
-                        console.log(res.status);
-                        console.log(res.data);
                     }
                 }
             }
@@ -351,8 +329,6 @@ async function callback_query(ctx) {
                 res.data.lists.map((item, index)=>listArr.push(Markup.button.callback(item.name, `myList::${index}`)));
                 let res2 = await sendPost({name: ctx.session.user.name}, 'sumLists', `Bearer ${ctx.session.token}`);
                 session.slists=res2.data.sumLists;
-                console.log('\n\n\n LOOK HERE \n\n\n')
-                console.log(res2.data);
                 if (res2.data.hasOwnProperty('sumLists')) res2.data.sumLists.map((item, index)=>{
                     let nameL = 'Совмещенный ';
                     item.lists.name.map((item)=>nameL+=`- ${item}`);
@@ -416,7 +392,6 @@ async function callback_query(ctx) {
                     case 'l' : { session.addRow.ind=' л'; break; }
                     case 'ml' : { session.addRow.ind = ' л'; session.addRow.total/=1000; break; }
                 }
-                console.log(session.addRow);
                 let str = 'Добавляем?\n\n';
                 str+=(nokText(session.addRow.name, session.addRow.total, session.addRow.ind, true));
                 ctx.replyWithHTML(str,
@@ -454,7 +429,6 @@ async function callback_query(ctx) {
             }
 
             case 'myList::' : {
-                console.log(session)
                 let ind = Number(ctx.callbackQuery.data.slice(8));
                 let str = '';
                 session.lists[ind].data.map((item)=>str+=(item.selected?okText(item.name, item.total, item.ind):nokText(item.name, item.total, item.ind)));
