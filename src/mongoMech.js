@@ -5,18 +5,23 @@ let collection;
 let listCollection;
 let sumListCollection;
 let serialCollection;
+let treningCollection;
+let logger;
 
 class mongoFunc {
-    constructor(uri) {
+    constructor(uri, loggerS) {
         mongoClient = new MongoClient(uri);
         db = mongoClient.db("usersdbList");
         collection = db.collection("usersLData");
         listCollection = db.collection("listsData");
         sumListCollection = db.collection("sumListsData");
         serialCollection = db.collection("serListsData");
+        treningCollection = db.collection("treningData");
+        logger = loggerS;
     }
 
     async find(obj) {
+        logger.trace('find');
         let extBuf = [];
         try {
             await mongoClient.connect();
@@ -26,8 +31,8 @@ class mongoFunc {
             else {
                 extBuf = await collection.find().toArray();
             }
-            //console.log(extBuf)
         }catch(err) {
+            logger.error('not find')
             extBuf=[];
         } finally {
             await mongoClient.close();
@@ -36,7 +41,7 @@ class mongoFunc {
     }
 
     async findSerial(login) {
-        console.log('find serial')
+        logger.trace('find serial');
         let extBuf = [];
         try {
             await mongoClient.connect();
@@ -48,9 +53,31 @@ class mongoFunc {
             }
             if (extBuf.length!==0) extBuf[0].res = true;
             else extBuf[0] = {res: false};
-            //console.log(extBuf)
         }catch(err) {
             extBuf[0] = {res: false};
+            logger.error('not find serial')
+        } finally {
+            await mongoClient.close();
+            return extBuf[0];
+        }
+    }
+
+    async findTrening(login) {
+        logger.trace('find trening');
+        let extBuf = [];
+        try {
+            await mongoClient.connect();
+            if (login) {
+                extBuf = await treningCollection.find({login: login}).toArray();
+            }
+            else {
+                extBuf = await treningCollection.find().toArray();
+            }
+            if (extBuf.length!==0) extBuf[0].res = true;
+            else extBuf[0] = {res: false};
+        }catch(err) {
+            extBuf[0] = {res: false};
+            logger.error('not find trening')
         } finally {
             await mongoClient.close();
             return extBuf[0];
@@ -58,19 +85,19 @@ class mongoFunc {
     }
 
     async incertOne(obj) {
-        //console.log('inc');
+        logger.trace('incertOne');
         try {
             await mongoClient.connect();
             await collection.insertOne(obj);
         }catch(err) {
-            console.log(err);
+            logger.error('incertOne')
         } finally {
             await mongoClient.close();
         }
     }
 
     async incertOneSerial(obj) {
-        //console.log('inc');
+        logger.trace('incertOneSerial');
         let extBuf = {};
         try {
             await mongoClient.connect();
@@ -79,6 +106,7 @@ class mongoFunc {
             if (extBuf) extBuf.res=true;
             else extBuf = {res: false};
         }catch(err) {
+            logger.error('err');
             extBuf = {res: false};
         } finally {
             await mongoClient.close();
@@ -86,8 +114,26 @@ class mongoFunc {
         }
     }
 
+
+    async incertOneTrening(obj) {
+        logger.trace('incertOneTrening');
+        let extBuf = {};
+        try {
+            await mongoClient.connect();
+            await treningCollection.insertOne(obj);
+            extBuf = await treningCollection.findOne({login: obj.login});
+            if (extBuf) extBuf.res=true;
+            else extBuf = {res: false};
+        }catch(err) {
+            logger.error('err');
+            extBuf = {res: false};
+        } finally {
+            await mongoClient.close();
+            return extBuf;
+        }
+    }
     async updateOne(oldObj, obj) {
-        //console.log('upd');
+        logger.trace('updateOne');
         let userLogin;
         try {
             await mongoClient.connect();
@@ -95,7 +141,7 @@ class mongoFunc {
                 oldObj, 
                 {$set: obj});
         }catch(err) {
-            console.log(err);
+            logger.error('err');
         } finally {
             await mongoClient.close();
             return userLogin
@@ -103,7 +149,7 @@ class mongoFunc {
     }
 
     async updateOneSerial(login, obj) {
-        //console.log('upd');
+        logger.trace('updateOneSerial');
         let extBuf = {};
         if (obj.hasOwnProperty('_id')) delete(obj._id);
         try {
@@ -115,6 +161,28 @@ class mongoFunc {
             if (extBuf) extBuf.res=true;
             else extBuf = {res: false};
         }catch(err) {
+            logger.error('err');
+            extBuf = {res: false};
+        } finally {
+            await mongoClient.close();
+            return extBuf;
+        }
+    }
+
+    async updateOneTrening(login, obj) {
+        logger.trace('updateOneTrening');
+        let extBuf = {};
+        if (obj.hasOwnProperty('_id')) delete(obj._id);
+        try {
+            await mongoClient.connect();
+            await treningCollection.updateOne(
+                {login}, 
+                {$set: obj});
+            extBuf = await treningCollection.findOne({login});
+            if (extBuf) extBuf.res=true;
+            else extBuf = {res: false};
+        }catch(err) {
+            logger.error('err');
             extBuf = {res: false};
         } finally {
             await mongoClient.close();
@@ -123,12 +191,10 @@ class mongoFunc {
     }
 
     async addList(login, list) {
-        console.log('cList');
+        logger.trace('addList');
         let bufList;
-        console.log(list)
         if(typeof(list)==='string') bufList=JSON.parse(list);
         else bufList=list;
-        console.log(bufList)
         let userLogin;
         try {
             await mongoClient.connect();
@@ -141,7 +207,6 @@ class mongoFunc {
             userLogin = await collection.find({ login: login }).toArray();
             if (typeof(userLogin[0].lists)!==typeof([])) userLogin[0].lists=[];
             userLogin[0].lists.push(id);
-            //console.log(userLogin);
             if (list.accessUsers.length===0) {
                 await collection.updateOne(
                     {login: login}, 
@@ -156,9 +221,8 @@ class mongoFunc {
                     {$set: {lists: bUser[0].lists} });            
             }
             userLogin = await collection.find({login: login}).toArray();
-            //console.log(userLogin)
         }catch(e){
-            console.log(e)
+            logger.error('err');
         } finally {
             await mongoClient.close();
             return userLogin;
@@ -167,39 +231,30 @@ class mongoFunc {
     }
 
     async addSumList(login, list) {
-        console.log('sumcList');
+        logger.trace('addSumList');
         let bufList;
-        console.log(list)
         if(typeof(list)==='string') bufList=JSON.parse(list);
         else bufList=list;
-        console.log(bufList)
         let userLogin;
         let succ = true;
         let id = 0;
         try {
             await mongoClient.connect();
             let buf = await sumListCollection.find().toArray();
-            console.log(buf)
-            console.log(buf.length)
             if (buf.length!==0) id = buf[buf.length-1].id+1;
             let saveData = {...bufList};
             saveData.id=id;
             saveData.saved = true;
             await sumListCollection.insertOne(saveData);
             userLogin = await collection.find({ login: login }).toArray();
-            console.log('\n\n82\n\n');
-            console.log(typeof(userLogin[0].lists));
-            console.log(userLogin[0].lists);
             if (typeof(userLogin[0].sumLists)!==typeof([])) userLogin[0].sumLists=[];
-            console.log(userLogin[0].sumLists);
             userLogin[0].sumLists.push(id);
-            //console.log(userLogin);
             await collection.updateOne(
                 {login: login}, 
                 {$set: {sumLists: userLogin[0].sumLists} });
             userLogin = await collection.find({login: login}).toArray();
-            //console.log(userLogin)
         }catch(e){
+            logger.error('err');
             succ = false;
         } finally {
             await mongoClient.close();
@@ -208,14 +263,10 @@ class mongoFunc {
     }
 
     async updList(login, list, unlog) {
-        console.log('\x1b[32muList\x1b[0m');
+        logger.trace('updList');
         let bufList;
-        //console.log(list)
         if(typeof(list)==='string') bufList=JSON.parse(list);
         else bufList=list;
-        //console.log(bufList.id)
-        //console.log(bufList.author)
-        //console.log(bufList.name)
         let userLogin;
         try {
             await mongoClient.connect();
@@ -223,12 +274,9 @@ class mongoFunc {
                 {id: Number(bufList.id)}, 
                 {$set: (unlog ? {data: bufList.data} : { name: bufList.name, author: bufList.author, data: bufList.data, access: bufList.access, accessUsers: bufList.accessUsers })});
             userLogin = await listCollection.find({id: Number(bufList.id)}).toArray();
-            console.log(userLogin);
-            console.log('userLogin');
         }catch(e){
-            console.log(e)
+            logger.error('err');
         } finally {
-            console.log('close');
             await mongoClient.close();
             if (!unlog) await this.insUpdList(userLogin);
             return userLogin;
@@ -237,14 +285,10 @@ class mongoFunc {
     }
 
     async updSumList(login, list) {
-        console.log('\x1b[32muList\x1b[0m');
+        logger.trace('updSumList');
         let bufList;
-        //console.log(list)
         if(typeof(list)==='string') bufList=JSON.parse(list);
         else bufList=list;
-        //console.log(bufList.id)
-        //console.log(bufList.author)
-        //console.log(bufList.name)
         let userLogin;
         let res = true;
         try {
@@ -253,12 +297,10 @@ class mongoFunc {
                 {id: Number(bufList.id)}, 
                 {$set: {data: bufList.data}});
             userLogin = await sumListCollection.find({id: Number(bufList.id)}).toArray();
-            console.log(userLogin);
-            console.log('userLogin');
         }catch(e){
+            logger.error('err');
             res = false;
         } finally {
-            console.log('close');
             await mongoClient.close();
             return { res, list: userLogin }
         }
@@ -267,10 +309,9 @@ class mongoFunc {
 
     async insUpdList(userLogin) {
         try {
-            console.log('unlog')
+            logger.trace('insUpdList');
             await mongoClient.connect();
             for (let i=0; i<userLogin[0].accessUsers.length;i++) {
-                console.log('for');
                 let dat = userLogin[0].accessUsers[i];
                 let logData = await collection.find({login: dat}).toArray(); 
                 if (!logData[0].lists.includes(bufList.id)) {
@@ -282,14 +323,14 @@ class mongoFunc {
                 }   
             }
         } catch (error) {
-            console.log(error)
+            logger.error('err');
         } finally {
-            console.log('close2');
+            logger.trace('end insUpdList');
         }
     }
 
     async deleteOne(login, hash) {
-        //console.log('del');
+        logger.trace('deleteOne');
         let extBuf = [];
         try {
             await mongoClient.connect();
@@ -299,7 +340,7 @@ class mongoFunc {
             }
             else if (hash!=='') await collection.findOneAndDelete({token: hash});
         }catch(err) {
-            console.log(err);
+            logger.error('err');
         } finally {
             await mongoClient.close();
             if (extBuf.length>0) return extBuf[0].token;
@@ -309,24 +350,25 @@ class mongoFunc {
     }
 
     async incertOneList(obj) {
-        //console.log('inc');
+        logger.trace('incertOneList');
         try {
             await mongoClient.connect();
             await listCollection.insertOne(obj);
         }catch(err) {
-            console.log(err);
+            logger.error('err');
         } finally {
             await mongoClient.close();
         }
     }
 
     async countLists() {
+        logger.trace('countLists');
         let count = 0;
         try {
             await mongoClient.connect();
             count = await listCollection.countDocuments();
         }catch(err){
-            console.log(err);
+            logger.error('err');
         }finally {
             await mongoClient.close();
             return count;
@@ -339,7 +381,7 @@ class mongoFunc {
             await mongoClient.connect();
             extBuf = await listCollection.find({id: id}).toArray();
         }catch(err) {
-            console.log(err)
+            logger.error('err');
             extBuf=[{mes: 'error'}];
         } finally {
             await mongoClient.close();
@@ -348,12 +390,13 @@ class mongoFunc {
     }
 
     async findSumLists(id) {
+        logger.trace('findSumLists');
         let extBuf = [];
         try {
             await mongoClient.connect();
             extBuf = await sumListCollection.find({id: id}).toArray();
         }catch(err) {
-            console.log(err)
+            logger.error('err');
             extBuf=[{mes: 'error'}];
         } finally {
             await mongoClient.close();
@@ -362,10 +405,12 @@ class mongoFunc {
     }
 
     async deleteList(id) {
+        logger.trace('deleteList');
         try {
             await mongoClient.connect();
             await listCollection.deleteOne({id: id});
         } catch(e) {
+            logger.error('err');
             return false;
         } finally {
             await mongoClient.close();
@@ -374,11 +419,13 @@ class mongoFunc {
     }
 
     async deleteSumList(id) {
+        logger.trace('deleteSumList');
         let res = true;
         try {
             await mongoClient.connect();
             await sumListCollection.deleteOne({id: id});
         } catch(e) {
+            logger.error('err');
             res = false;
         } finally {
             await mongoClient.close();
@@ -387,6 +434,7 @@ class mongoFunc {
     }
 
     async deleteSerialsFromList(login, category, serials) {
+        logger.trace('deleteSerialsFromList');
         let ext = {res: false}
         try {
             await mongoClient.connect();
@@ -406,6 +454,7 @@ class mongoFunc {
                 }
             }
         } catch(e) {
+            logger.error('err');
             ext = {res: false}
         } finally {
             await mongoClient.close();
@@ -414,12 +463,12 @@ class mongoFunc {
     }
 
     async attention() {
-        //console.log('goodbye');
+        logger.trace('attention');
         try {
             await mongoClient.connect();
             await collection.drop()
         }catch(err) {
-            console.log(err);
+            logger.error('err');
         } finally {
             await mongoClient.close();
         }

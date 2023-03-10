@@ -24,7 +24,7 @@ log4js.configure({
         mail: {
             type: '@log4js-node/smtp',
             recipients: 'pyshnenko94@yandex.ru',
-            sendInterval: 5,
+            sendInterval: 20,
             transport: 'SMTP',
             SMTP: {
                 host: 'smtp.gmail.com',
@@ -81,26 +81,25 @@ bot.start( async (ctx) =>  {
         session.status='work';
         ctx.session=session;
         startKeyboard(ctx);
-
     }
     else {
         ctx.reply('Сервер временно недоступен. Попробуйте позже');
         logger.error('Сервер БД недоступен. Запрос loginTG')
     }
-    delMess(ctx, ctx.message.message_id, logger);
+    delMess(ctx, ctx.message.message_id+1, logger);
     ctx.session=session;
 });
 
 bot.on('callback_query', async (ctx) => {
     logger.trace('callback_query: ' + ctx.from.id + ": " + ctx.callbackQuery.data)
     await callback_query(ctx, logger);
-    delMess(ctx, ctx.callbackQuery.message.message_id, logger);
+    delMess(ctx, ctx.callbackQuery.message.message_id+1, logger);
 });
 
 bot.on('text', async (ctx) => {
     logger.trace('text: ' + ctx.from.id + ": " + ctx.message.text)
     await textHandler(ctx, logger);
-    delMess(ctx, ctx.message.message_id, logger);
+    delMess(ctx, ctx.message.message_id+1, logger);
 });
 
 bot.on('web_app_data', async (ctx) => {
@@ -125,7 +124,7 @@ bot.on('web_app_data', async (ctx) => {
     }
     else ctx.reply('Кажется, вы используете WEB-версию telegram. Воспользуйтесь другими способами изменения данных')
     ctx.session = session;
-    delMess(ctx, ctx.message.message_id, logger);
+    delMess(ctx, ctx.message.message_id+1, logger);
 })
 
 bot.launch(mailLog.info('bot start'));
@@ -133,7 +132,7 @@ bot.launch(mailLog.info('bot start'));
 bot.catch((err)=>console.log(err));
 
 process.on('uncaughtException', (err, origin) => {
-    mailLog.fatal('Все, пиздец')
+    mailer.fatal('Все, пиздец')
 });
 
 process.once('SIGINT', () => {

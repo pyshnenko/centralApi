@@ -4,6 +4,46 @@ const fs = require('fs');
 let jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
+const mailSend = require('./../../src/mailSend');
+const mail = new mailSend(process.env.MYURLS, process.env.SALT_CRYPT);
+const redirectPage = '/build';
+
+const log4js = require("log4js");
+
+let options = {
+  key: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/privkey.crt"),
+  cert: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/fullchain.crt"),
+ca: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/chain.crt")
+};
+
+log4js.configure({
+    appenders: { 
+        cApi: { type: "file", filename: "log/CentralApi.log" }, 
+        console: { type: 'console' },
+        mail: {
+            type: '@log4js-node/smtp',
+            recipients: 'pyshnenko94@yandex.ru',
+            sendInterval: 20,
+            transport: 'SMTP',
+            SMTP: {
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
+                key: options.key,
+                cert: options.sert,
+                ca: options.ca,
+                auth: {
+                    user: process.env.MAILUSER,
+                    pass: process.env.MAILPASS,
+                },
+            },
+        },
+    },
+    categories: { default: { appenders: ['console', "cApi"], level: "all" },
+                mailer: { appenders: ['mail', 'console', 'cApi'], level: 'all' }, },
+  });
+const logger = log4js.getLogger("cApi");
+
 const url = process.env.MONGO_URL;
 const username = process.env.MONGO_USERNAME;
 const password = process.env.MONGO_PASS;
@@ -11,37 +51,30 @@ const authMechanism = "DEFAULT";
 const uri =`mongodb://${username}:${password}@${url}/?authMechanism=${authMechanism}`;
 
 const mongoMech = require('./../../src/mongoMech');
-const mongo = new mongoMech(uri);
-
-const mailSend = require('./../../src/mailSend');
-const mail = new mailSend(process.env.MYURLS, process.env.SALT_CRYPT);
-const redirectPage = '/list';
+const mongo = new mongoMech(uri, logger);
 
 export default async function handler(req, res) {
-  console.log('\x1b[34mmethod: '+req.method+'\x1b[0m');
+  logger.trace('method: '+req.method)
     await NextCors(req, res, {
         methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
         origin: '*',
         optionsSuccessStatus: 200,
     });
     if (req.method==='POST') {
+      logger.trace('make: '+req.headers.make)
       let buf;
       if (typeof(req.body)==='string') buf = JSON.parse(req.body);
       else buf = req.body;
       if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='checkLogin')&&(req.hasOwnProperty('body'))&&(req.body.login)) {
-        console.log('check login');
-        console.log(buf)
         let extData = await mongo.find({login: buf.login.trim()})
         extData.length===0 ? res.status(200).json({ result: 'free' }) : res.status(200).json({ result: 'buzy' })
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='usersList')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')) {
-        console.log('usersList');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
           let data = await mongo.find({})
-          console.log(data);
           let result = [];
           data.map((key)=>{
             result.push({login: key.login, role: key.role, name: key.name});
@@ -52,12 +85,8 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='unSumLoginAdm')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('hash'))) {
-        console.log('unSumLoginAdm');
-        console.log(req.body.hash);
         let id = await mail.decryptHash(req.body.hash);
-        console.log(id);
         if (id) {
-          console.log(true);
           let extData = await mongo.findSumLists(Number(id));
           if (extData.length!==0) {
             res.status(200).json({data: extData});
@@ -68,12 +97,9 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='unLoginAdm')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('hash'))) {
-        console.log('unloginAdm');
-        console.log(req.body.hash);
         let id = await mail.decryptHash(req.body.hash);
-        console.log(id);
         if (id) {
-          console.log(true);
+          logger.trace('findLists');
           let extData = await mongo.findLists(Number(id));
           if (extData.length!==0) {
             res.status(200).json({data: extData});
@@ -84,7 +110,6 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='saveSumList')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
-        console.log('usersList');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
@@ -112,11 +137,9 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='setHash')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('id'))) {
-        console.log('usersList');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
-          console.log(typeof(req.body.id))
           let hash = await mail.cryptHash(req.body.id);
           res.status(200).json({ hash });
         }
@@ -124,13 +147,10 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askUserData')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
-        console.log('askUserData');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
           let data = await mongo.find({login: req.body.login})
-          console.log('data');
-          console.log(data);
           res.status(200).json({ answer: {
             login: data[0].login, 
             role: data[0].role,
@@ -150,7 +170,6 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='friendshipNo')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('friend'))) {
-        console.log('friendshipNo');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
@@ -158,8 +177,6 @@ export default async function handler(req, res) {
           askToAddArr.splice(extData[0].askToAdd.indexOf(req.body.friend),1);
           await mongo.updateOne({login: extData[0].login}, {askToAdd: askToAddArr});
           let data = await mongo.find({token: atoken})
-          console.log('data');
-          console.log(data);
           delete data._id;
           delete data.token;
           delete data.atoken;
@@ -169,7 +186,6 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='friendshipStart')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('friend'))) {
-        console.log('friendshipStart');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         let extData2 = await mongo.find({login: req.body.friend});
@@ -185,8 +201,6 @@ export default async function handler(req, res) {
           friendsArr.sort();
           await mongo.updateOne({login: req.body.friend}, {friends: friendsArr});
           let data = await mongo.find({token: atoken})
-          console.log('data');
-          console.log(data);
           delete data._id;
           delete data.token;
           delete data.atoken;
@@ -196,7 +210,6 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='friendshipEnd')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))&&(req.body.hasOwnProperty('friend'))) {
-        console.log('friendshipEnd');
         let atoken=req.headers.authorization.substr(7);
         let extData = await mongo.find({token: atoken});
         let extData2 = await mongo.find({login: req.body.friend});
@@ -217,13 +230,10 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askToAdd')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')&&(req.hasOwnProperty('body'))) {
-        console.log('askToAdd');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
           let data = await mongo.find({login: req.body.login})
-          console.log('data');
-          console.log(data);
           let newAsk = data[0].askToAdd;
           if (typeof(newAsk)!=='Array') newAsk=[];
           if (!newAsk.includes(extData[0].login)) 
@@ -238,10 +248,8 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='reg')) {
-        console.log('\n\nreg\n\n')
         let extData = await mongo.find({login: req.body.login.trim()})
         if (extData.length===0) {
-          console.log('yep')
           let atoken = await bcrypt.hash((req.body.pass+req.body.login.trim()), 10)
           let token = await jwt.sign(req.body, atoken);
           mongo.incertOne({
@@ -279,13 +287,11 @@ export default async function handler(req, res) {
         }
         else {
           res.status(401).json({ method: req.method, headers: req.headers, error: 'login bizy'})
-          console.log('errr')
         }
       }
            
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='login')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!==''))
       {
-        console.log('\n\nloginB\n\n')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
@@ -296,11 +302,9 @@ export default async function handler(req, res) {
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='login')&&(req.hasOwnProperty('body'))&&(req.body.login!=='')&&(req.body.pass!==''))
       {
-        console.log('\n\nlogin\n\n')
         let extData = await mongo.find({login: req.body.login.trim()})
         if (extData.length!==0) {
           bcrypt.compare(req.body.pass+req.body.login.trim(), extData[0].pass).then(function(result) {
-            console.log(result)
             let atoken=extData[0].pass.substr(7)
             if (result == true) res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})
             else res.status(401).json({ res: 'not ok', error: 'pass incorrect', make: req.headers.make})
@@ -311,7 +315,6 @@ export default async function handler(req, res) {
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='loginTG')&&(req.hasOwnProperty('body'))&&(Number(req.body.tgID)))
       {
-        console.log('\n\n loginTG\n\n')
         let extData = await mongo.find({telegramID: Number(req.body.tgID)})
         if (extData.length!==0) {
             let atoken=extData[0].pass.substr(7)
@@ -322,7 +325,6 @@ export default async function handler(req, res) {
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='connectTG')&&(req.hasOwnProperty('body'))&&(req.body.login!=='')&&(req.body.loginTG!=='')&&(Number(req.body.id)))
       {
-        console.log('\n\n connectTG\n\n')
         let extData = await mongo.find({login: req.body.login.trim()})
         if (extData.length!==0) {
             mongo.updateOne({login: extData[0].login}, {telegram: req.body.loginTG.trim(), telegramID: Number(req.body.id)});            
@@ -334,7 +336,6 @@ export default async function handler(req, res) {
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='lists')&&(req.headers.hasOwnProperty('authorization')))
       {
-        console.log('\n\nlists\n\n')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         let realLists = [];
@@ -342,10 +343,10 @@ export default async function handler(req, res) {
         if (extData.length!==0) {
           if ((extData[0].hasOwnProperty('lists'))&&(extData[0].lists.length!==0)) {
             let resData = [];
+            logger.trace('findLists');
             for (let i=0; i<extData[0].lists.length; i++) {
               let row = extData[0].lists[i];
               let tBuf = await mongo.findLists(row);
-              console.log(tBuf)
               if (tBuf.length!==0) {
                 if ((tBuf[0].hasOwnProperty('accessUsers'))&&((tBuf[0].accessUsers!==null)&&(tBuf[0].accessUsers.includes(extData[0].login)))||((tBuf[0].hasOwnProperty('access'))&&(tBuf[0].access==='all'))) {
                   if (!realLists.includes(row)) {
@@ -362,8 +363,6 @@ export default async function handler(req, res) {
               }
               else needUpd = true;
             }
-            console.log('lists111: ');
-            console.log(realLists);
             if (needUpd) mongo.updateOne({login: extData[0].login}, {lists: realLists})
             res.status(200).json({ lists: resData })
           }
@@ -373,7 +372,6 @@ export default async function handler(req, res) {
         else res.status(401).json({err: 'login not found', make: req.headers.make})
       }else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='sumLists')&&(req.headers.hasOwnProperty('authorization')))
       {
-        console.log('\n\sumLists\n\n')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         let realLists = [];
@@ -385,7 +383,6 @@ export default async function handler(req, res) {
             for (let i=0; i<extData[0].sumLists.length; i++) {
               let row = extData[0].sumLists[i];
               let tBuf = await mongo.findSumLists(row);
-              console.log(tBuf)
               if (tBuf.length!==0) {                
                 if (!realLists.includes(row)) {
                   tBuf[0].hash = await mail.cryptHash(tBuf[0].id);
@@ -395,8 +392,6 @@ export default async function handler(req, res) {
               }
               else needUpd = true;
             }
-            console.log('lists111222: ');
-            console.log(realLists);
             if (needUpd) mongo.updateOne({login: extData[0].login}, {sumLists: realLists})
             res.status(200).json({ sumLists: resData })
           }
@@ -407,24 +402,19 @@ export default async function handler(req, res) {
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='setList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body')))
       {
-        console.log('\n\n\n\nsetList\n\n\n\n');
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
-          //console.log('add')
           let realLists = [];
           let needUpd = false;      
           let buf;
           if (typeof(req.body)==='string') buf = JSON.parse(req.body);
           else buf = req.body;
           let answ = await mongo.addList(extData[0].login, buf);
-          console.log('\n\n\nset\n\n\n');
-          console.log(buf.accessUsers)
-          console.log(answ);
           let resData = [];
+          logger.trace('findLists');
           for (let i=0; i<answ[0].lists.length; i++) {
             let row = answ[0].lists[i];
-            //console.log(row)
             let tBuf = await mongo.findLists(row);
             if (tBuf.length!==0) { 
               resData.push(tBuf[0])
@@ -439,14 +429,12 @@ export default async function handler(req, res) {
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body')))
       {
-
-        console.log('\nupdList\n')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
         if ((extData.length!==0)&&(req.body.list)) {
           let answ = [];
           try{answ = await mongo.updList(extData[0].login, req.body.list);}
-          catch(e){console.log('\x1b[31mошибка ебучая блять\x1b[0m')}
+          catch(e){logger.error('ошибка ебучая блять')}
           if ((answ[0].access==='friends')||(answ[0].access==='users')) {
             for (let i=0; i<answ[0].accessUsers.length; i++) {
               let log = answ[0].accessUsers[i];
@@ -461,7 +449,6 @@ export default async function handler(req, res) {
           res.status(200).json({ message: 'list upd', list: req.body.list })
         }
         else res.status(401).json({err: 'login not found', make: req.headers.make})
-        //console.log('exit');
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='delList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
         let atoken=req.headers.authorization.substr(7)
@@ -469,7 +456,6 @@ export default async function handler(req, res) {
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        //console.log(buf)
         if (extData.length!==0) {
           if (buf.id!=='') {
             let reee = await mongo.deleteList(Number(buf.id));
@@ -485,7 +471,6 @@ export default async function handler(req, res) {
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        //console.log(buf)
         if (extData.length!==0) {
           if (buf.id!=='') {
             let reee = await mongo.deleteSumList(Number(buf.id));
@@ -499,7 +484,6 @@ export default async function handler(req, res) {
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='checkMail')&&(req.headers.hasOwnProperty('authorization'))) {
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
-        //console.log(extData);
         if (extData.length!==0) {
           if ((!extData[0].emailValid)&&(extData[0].email.includes('@'))) {
             await mail.sendMail(extData[0].email, extData[0].login);
@@ -513,14 +497,11 @@ export default async function handler(req, res) {
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updUserData')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
-        //console.log(extData);            
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        //console.log(buf);
         let bufB = {};
         Object.keys(buf).map((key)=>{if ((key!=='_id')&&(key!=='emailValid')&&(key!=='login')) bufB[key]=buf[key]});
-        //console.log(bufB);
         if (extData.length!==0) {
           if (buf.id!=='') {
             if (buf.email&&(extData[0].email!==buf.email.trim())) buf.emailValid=false;
@@ -546,7 +527,6 @@ export default async function handler(req, res) {
       }      
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='createSerialList')&&(req.headers.hasOwnProperty('authorization'))) {
-        console.log('\x1b[31 createSerialList \x1b[0m')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
         let buf;
@@ -559,7 +539,6 @@ export default async function handler(req, res) {
       }       
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='findSerialList')&&(req.headers.hasOwnProperty('authorization'))) {
-        console.log('\x1b[31    findSerialList \x1b[0m')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
         let buf;
@@ -572,7 +551,6 @@ export default async function handler(req, res) {
       }    
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updateSerialList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
-        console.log('\x1b[31 updateSerialList \x1b[0m')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
         let buf;
@@ -587,7 +565,6 @@ export default async function handler(req, res) {
       }  
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='deleteSerialList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
-        console.log('\x1b[31 deleteSerialList \x1b[0m')
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken});
         let buf;
@@ -599,13 +576,52 @@ export default async function handler(req, res) {
           else res.status(402).json({error: 'error on delete', make: req.headers.make})
         }
         else res.status(401).json({error: 'unautorized', make: req.headers.make})
-      }
+      }      
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='createTreningList')&&(req.headers.hasOwnProperty('authorization'))) {
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});
+        let buf;
+        if (extData.length!==0) {
+          let reee = await mongo.incertOneTrening({login: extData[0].login, history: [], categories: {'Без категории': {}}});
+          if (reee.res) res.status(200).json(reee);
+          else res.status(402).json({error: 'error on insert', make: req.headers.make})
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }       
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='findTreningList')&&(req.headers.hasOwnProperty('authorization'))) {
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});
+        let buf;
+        if (extData.length!==0) {
+          let reee = await mongo.findTrening(extData[0].login);
+          if (reee.res) res.status(200).json(reee);
+          else res.status(402).json({error: 'error on find', make: req.headers.make})
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }    
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updateTreningList')&&(req.headers.hasOwnProperty('authorization'))&&(req.hasOwnProperty('body'))) {
+        let atoken=req.headers.authorization.substr(7)
+        let extData = await mongo.find({token: atoken});
+        let buf;
+        if (extData.length!==0) {
+          if (typeof(req.body)==='string') buf = JSON.parse(req.body);
+          else buf = req.body;
+          let reee = await mongo.updateOneTrening(extData[0].login, buf);
+          if (reee.res) res.status(200).json(reee);
+          else res.status(402).json({error: 'error on update', make: req.headers.make})
+        }
+        else res.status(401).json({error: 'unautorized', make: req.headers.make})
+      }  
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='askList')&&(req.hasOwnProperty('body'))) {
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
         if (Number(buf.id)) {
+          logger.trace('findLists');
           let row = await mongo.findLists(Number(buf.id));
           if (row.length!==0) {
             if (row[0].access==='all') {
@@ -618,15 +634,12 @@ export default async function handler(req, res) {
         else res.status(200).json({error: 'incorrect'});
       }
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updUList')&&(req.hasOwnProperty('body'))) {
-        console.log('\n\nupdul\n\n')
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        //console.log(buf)
         if (Number(buf.list.id)) {
-          //console.log('im here')
+          logger.trace('findLists');
           let row = await mongo.findLists(Number(buf.list.id));
-          //console.log(row)
           if (row.length!==0) {
             if (row[0].access==='all') {
               let answ = await mongo.updList('', buf.list, true);
@@ -640,15 +653,11 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updASumUList')&&(req.hasOwnProperty('body'))) {
-        console.log('\n\n updASumUList\n\n')
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        //console.log(buf)
         if (Number(buf.list.id)) {
-          //console.log('im here')
           let row = await mongo.findSumLists(Number(buf.list.id));
-          //console.log(row)
           if (row.length!==0) {
             let answ = await mongo.updSumList('', buf.list, true);
             res.status(200).json({res: answ});
@@ -659,15 +668,12 @@ export default async function handler(req, res) {
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='updAUList')&&(req.hasOwnProperty('body'))) {
-        console.log('\n\nupdAUList\n\n')
         let buf;
         if (typeof(req.body)==='string') buf = JSON.parse(req.body);
         else buf = req.body;
-        //console.log(buf)
         if (Number(buf.list.id)) {
-          //console.log('im here')
+          logger.trace('findLists');
           let row = await mongo.findLists(Number(buf.list.id));
-          //console.log(row)
           if (row.length!==0) {
             let answ = await mongo.updList('', buf.list, true);
             res.status(200).json({res: answ});
@@ -693,7 +699,5 @@ export default async function handler(req, res) {
         else res.status(200).json({ method: req.method, cookies: req.cookies, name: buf, addr: bufA, save: false });
       }
     }
-    
-    else console.log(req.method);
-    console.log('end')
+    logger.info('done')
   }
