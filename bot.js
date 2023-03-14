@@ -92,7 +92,7 @@ bot.start( async (ctx) =>  {
 
 bot.on('callback_query', async (ctx) => {
     logger.trace('callback_query: ' + ctx.from.id + ": " + ctx.callbackQuery.data)
-    await callback_query(ctx, logger);
+    await callback_query(ctx, logger, process);
     delMess(ctx, ctx.callbackQuery.message.message_id+1, logger);
 });
 
@@ -106,25 +106,49 @@ bot.on('web_app_data', async (ctx) => {
     let session = ctx.session;
     let data = JSON.parse(ctx.message.web_app_data.data)
     logger.trace('web_app_data: ' + ctx.from.id + ": " + ctx.message.web_app_data.data);
-    session.status = 'work';
-    if ((data.seazon)&&(data.epizod)&&(data.time)) {
-        session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s = (data.seazon==='0'||Number(data.seazon) ? Number(data.seazon) : data.seazon);
-        session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e = (data.epizod==='0'||Number(data.epizod) ? Number(data.epizod) : data.epizod);
-        session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t = (data.time==='0'||Number(data.time) ? Number(data.time) : data.time);
-        delete(session.tecnicalSub);
-        let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
-        if (res.status === 200) {
-            await ctx.reply('Готово', Markup.removeKeyboard(true));
-            startKeyboard(ctx)
+    if (session.status==='editWebT') {
+        if(data.res) {
+            console.log(data.data);
+            session.trening.categories = data.data;
+            let buf = session.trening;
+            delete(buf.list);
+            let res = await sendPost(buf, 'updateTreningList', `Bearer ${session.token}`);
+            if (res.status === 200) {
+                await ctx.reply('Готово', Markup.removeKeyboard(true));
+                startKeyboard(ctx)
+            }
+            else {
+                await ctx.reply('Неудача', Markup.removeKeyboard(true));
+                startKeyboard(ctx);
+            }
         }
-        else {
-            await ctx.reply('Неудача', Markup.removeKeyboard(true));
-            startKeyboard(ctx);
-        }
+        else ctx.reply('Кажется, вы используете WEB-версию telegram. Воспользуйтесь другими способами изменения данных')
     }
-    else ctx.reply('Кажется, вы используете WEB-версию telegram. Воспользуйтесь другими способами изменения данных')
+    else if (session.status==='editWeb:') {
+        if ((data.seazon)&&(data.epizod)&&(data.time)) {
+            session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].s = (data.seazon==='0'||Number(data.seazon) ? Number(data.seazon) : data.seazon);
+            session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].e = (data.epizod==='0'||Number(data.epizod) ? Number(data.epizod) : data.epizod);
+            session.serials.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].t = (data.time==='0'||Number(data.time) ? Number(data.time) : data.time);
+            delete(session.tecnicalSub);
+            let res = await sendPost(original(session.serials), 'updateSerialList', `Bearer ${session.token}`);
+            if (res.status === 200) {
+                await ctx.reply('Готово', Markup.removeKeyboard(true));
+                startKeyboard(ctx)
+            }
+            else {
+                await ctx.reply('Неудача', Markup.removeKeyboard(true));
+                startKeyboard(ctx);
+            }
+        }
+        else ctx.reply('Кажется, вы используете WEB-версию telegram. Воспользуйтесь другими способами изменения данных')
+    }
+    else {        
+        ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
+        logger.error(`uncnown error: user: ${ctx.from.id}, ${ctx.from.username}; status: ${session?.status}, message: ${ctx.message.text}`)
+    }
     ctx.session = session;
-    delMess(ctx, ctx.message.message_id+1, logger);
+    session.status = 'work';
+    delMess(ctx, ctx.message.message_id+2, logger);
 })
 
 bot.launch(mailLog.info('bot start'));
@@ -137,9 +161,11 @@ process.on('uncaughtException', (err, origin) => {
 
 process.once('SIGINT', () => {
     bot.stop('SIGINT');
-    logger.fatal('Остановлено SIGINT')
+    logger.fatal('Остановлено SIGINT');
+    process.exit(-1);
 });
 process.once('SIGTERM', () => {
     bot.stop('SIGTERM');
-    logger.fatal('Остановлено SIGINT')
+    logger.fatal('Остановлено SIGINT');
+    process.exit(-1);
 });

@@ -53,11 +53,11 @@ app.post("/apiUpload", function (req, res, next) {
         jjj=jjj.filter(d => d.isDirectory());
         jjj.map(d => ddir.push(d.name));
         console.log(ddir);
-        if (!ddir.includes(req.headers.login)) fs.mkdir(`pict/${req.headers.login}`, err => {
+        if (!ddir.includes(decodeURI(req.headers.login))) fs.mkdir(`pict/${decodeURI(req.headers.login)}`, err => {
    if(err) throw err; // не удалось создать папку
    console.log('Папка успешно создана');
 });
-      let newName = `pict/${req.headers.login ? req.headers.login : 'base'}/${req.headers.fname}`;
+      let newName = `pict/${req.headers.login ? decodeURI(req.headers.login) : 'base'}/${decodeURI(req.headers.fname)}`;
         fs.rename(`uploads/${name}`, `${newName}`, err => {
    if(err) throw err; // не удалось переместить файл
    console.log('Файл успешно перемещён');

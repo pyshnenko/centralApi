@@ -2,6 +2,8 @@ const { Markup } = require('telegraf');
 const {session} = require('telegraf');
 const okLbl='✅ ';
 const nokLbl='❌ ';
+const greenBlock = '🟩';
+const redBlock = '🟥';
 
 module.exports.startKeyboard = async function(ctx, text) {
     let mData = await ctx.reply('Обновим интерфейс', Markup.removeKeyboard(true));
@@ -12,6 +14,7 @@ module.exports.startKeyboard = async function(ctx, text) {
             Markup.button.callback('Посмотреть мои списки', `lists`),
             Markup.button.callback('Найти список по его ID', `seeById`),
             Markup.button.callback('Блокнотик для сериальчиков', `serials`),
+            Markup.button.callback('Блокнотик тренировок', `trening`),
         ], {columns: 1}))
 }
 
@@ -50,4 +53,15 @@ module.exports.YorNkeyboard = (ctx, text) => {
             Markup.button.callback(`${okLbl}Да`, `YESkeyb`),
             Markup.button.callback(`${nokLbl}Нет`, `NOkeyb`)
         ], {columns: 2}))
+}
+
+module.exports.progressBar = (value) => {
+    let str = '';
+    console.log(value)
+    for (let i=0; i<10; i++) {
+        if ((Math.floor(100*i/9)<=(value+0.01))&&(value!==0)) str+=greenBlock;
+        else str+=redBlock;
+    }
+    console.log(str)
+    return str;
 }

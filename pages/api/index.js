@@ -43,6 +43,7 @@ log4js.configure({
                 mailer: { appenders: ['mail', 'console', 'cApi'], level: 'all' }, },
   });
 const logger = log4js.getLogger("cApi");
+const mails = log4js.getLogger('mailer');
 
 const url = process.env.MONGO_URL;
 const username = process.env.MONGO_USERNAME;
@@ -68,6 +69,30 @@ export default async function handler(req, res) {
       if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='checkLogin')&&(req.hasOwnProperty('body'))&&(req.body.login)) {
         let extData = await mongo.find({login: buf.login.trim()})
         extData.length===0 ? res.status(200).json({ result: 'free' }) : res.status(200).json({ result: 'buzy' })
+      }
+
+      else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='treningForm')&&(req.hasOwnProperty('body'))) {
+        const jtoken = buf.token;
+        let decoded = {};
+        try {
+          decoded = await jwt.verify(jtoken, process.env.SKEY);
+          decoded.error = false;
+        } catch(err) {
+          decoded.error = true;
+        }
+        if (decoded.error) {
+          res.status(401).json({err: 'login not found', make: req.headers.make});
+        }
+        else {
+          let atoken=decoded.token.substr(7)
+          let extData = await mongo.find({token: atoken})
+          if (extData.length!==0) {
+            let reee = await mongo.findTrening(extData[0].login);
+            if (reee.res) res.status(200).json({res: reee, cat: decoded.categ});
+            else res.status(402).json({error: 'error on find', make: req.headers.make})
+          }
+          else res.status(401).json({err: 'login not found', make: req.headers.make});
+        }
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='usersList')&&(req.headers.hasOwnProperty('authorization'))&&(req.headers.authorization!=='')) {
@@ -250,6 +275,7 @@ export default async function handler(req, res) {
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='reg')) {
         let extData = await mongo.find({login: req.body.login.trim()})
         if (extData.length===0) {
+          mails.info(`Новый пользователь: ${req.body.login.trim()}`);
           let atoken = await bcrypt.hash((req.body.pass+req.body.login.trim()), 10)
           let token = await jwt.sign(req.body, atoken);
           mongo.incertOne({

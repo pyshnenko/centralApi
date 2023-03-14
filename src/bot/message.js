@@ -4,7 +4,7 @@ const {startKeyboard, isEmpty, accUsList, okText, nokText} = require("./other");
 const { Markup } = require('telegraf');
 const okLbl='✅ ';
 const nokLbl='❌ ';
-const {parse, original} = require("./listsReorginizer")
+const {parse, parseT, original, originalT} = require("./listsReorginizer")
 
 async function textHandler(ctx, logger) {
     let err = false;
@@ -24,6 +24,87 @@ async function textHandler(ctx, logger) {
                 ('Что-то с сервером. Попробуйте позднее');
                 logger.error(`Ошибка при запросе к серверу. Статус: ${res.status}, make: connectTG`)
             }
+        }
+
+        else if (session.status==='tgTrnNew') {
+            let num = Number(ctx.message.text);
+            if (num||(num===0)) {
+                session.status = 'work';
+                session.trening.target = num;
+                let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                if (res.status===200) {
+                    startKeyboard(ctx, 'Готово');
+                }
+                else {
+                    startKeyboard(ctx, 'Неудача')
+                }
+            }
+            else ctx.reply('Проверь ввод и повтори');
+        }
+
+        else if (ctx.session.status==='crTrnCat') {
+            session.status = 'work';
+            session.trening.list.push({ array: [], name: ctx.message.text.trim() });
+            let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+            if (res.status===200) {
+                startKeyboard(ctx, 'Готово');
+            }
+            else {
+                startKeyboard(ctx, 'Неудача')
+            }
+        }
+
+        else if (ctx.session.status==='addTren:') {
+            session.status = 'work';
+            session.trening.list[session.tecnicalTren].array.push({ name: ctx.message.text.trim(), w: 0 });
+            let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+            if (res.status===200) {
+                startKeyboard(ctx, 'Готово');
+            }
+            else {
+                startKeyboard(ctx, 'Неудача')
+            }
+        }
+
+        else if (ctx.session.status==='reNmCatT') {
+            session.status = 'work';
+            session.trening.list[session.tecnicalTren].name = ctx.message.text.trim();
+            let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+            if (res.status===200) {
+                startKeyboard(ctx, 'Готово');
+            }
+            else {
+                startKeyboard(ctx, 'Неудача')
+            }
+        }
+
+        else if (ctx.session.status==='edNameT:') {
+            let text = ctx.message.text.trim();
+            session.status = 'work';
+            session.trening.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].name = text;
+            let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+            if (res.status === 200) {
+                startKeyboard(ctx, 'Готово')
+            }
+            else {
+                startKeyboard(ctx, 'Неудача')
+            }
+        }
+
+        else if (ctx.session.status==='editWT::') {
+            let text = Number(ctx.message.text.trim());
+            if (text||(text===0)) {
+                session.status = 'work';
+                session.trening.list[session.tecnicalSub[0]].array[session.tecnicalSub[1]].w = text;
+                let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                if (res.status === 200) {
+                    startKeyboard(ctx, 'Готово')
+                }
+                else {
+                    startKeyboard(ctx, 'Неудача')
+                }
+            }
+            else ctx.reply('Введи число');
         }
 
         else if (ctx.session.status==='categoryName') {

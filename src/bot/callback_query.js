@@ -2,13 +2,15 @@ const { Markup } = require('telegraf');
 const {session} = require('telegraf');
 const okLbl='✅ ';
 const nokLbl='❌ ';
+const prize='🍔';
 const compare = require("./../../compare");
 const sendPost = require('./api');
-const {startKeyboard, isEmpty, accUsList, okText, nokText, YorNkeyboard} = require("./other");
-const {parse, original} = require("./listsReorginizer")
-const formUrl = 'https://spamigor.site/build'
+const {startKeyboard, isEmpty, accUsList, okText, nokText, YorNkeyboard, progressBar} = require("./other");
+const {parse, parseT, original, originalT} = require("./listsReorginizer")
+const formUrl = 'https://spamigor.site/build';
+let jwt = require('jsonwebtoken');
 
-async function callback_query(ctx, logger) {
+async function callback_query(ctx, logger, process) {
     let trig = true;
     ctx.answerCbQuery();
     ctx.deleteMessage();
@@ -17,11 +19,220 @@ async function callback_query(ctx, logger) {
     else {
         switch (ctx.callbackQuery.data.slice(0,8)) {
 
+            // ТРЕНИРОВКИ  
+
+            case 'editWebT' : {
+                let item = Number(ctx.callbackQuery.data.slice(8));
+                const uriDat = jwt.sign({ 
+                    iss: 'bot', 
+                    sub: 'auth', 
+                    iat: Number(Date.now()), 
+                    login: session.user.login, 
+                    token: `Bearer ${session.token}`,
+                    make: 'trening', 
+                    categ: session.trening.list[item].name 
+                }, process.env.SKEY, { expiresIn: '1h' });
+                session.status = 'editWebT';
+                let sendUri = new URL(formUrl);
+                sendUri.searchParams.append('trening', true);
+                sendUri.searchParams.append('auth', uriDat);
+                console.log(sendUri.href)
+                await ctx.replyWithHTML(
+                    'Перейди для изменения',
+                    Markup.keyboard([
+                    Markup.button.webApp(
+                        "Open",
+                        sendUri.href
+                    ),
+                ]))
+                break;
+            }                  
+            
+            case 'tgTrnRem' : {
+                if (trig) {
+                    session.status='tgTrn++';
+                    let date = new Date();
+                    date.setMonth(date.getMonth()-1);
+                    session.trening.date=Number(date);
+                    let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                    trig = false;
+                }
+            }
+            
+            case 'tgTrnRep' : {
+                if (trig) {
+                    session.status='tgTrn++';
+                    session.trening.onTarget=0;
+                    let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                    trig = false;
+                }
+            }
+            
+            case 'tgTrn++' : {
+                if (trig) {
+                    session.status='tgTrn++';
+                    session.trening.onTarget++;
+                    let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                }
+            }
+
+            case 'trening' : {
+                session.status='trening';
+                let res = await sendPost({login: session.user.login}, 'findTreningList', `Bearer ${session.token}`);
+                if (res.status===402) {
+                    logger.trace(`id: ${ctx.from.id}: Список тренировок не найден, создаю`)
+                    let result = await sendPost({}, 'createTreningList', `Bearer ${session.token}`);
+                    if (result.status ===200) {
+                        let data = parseT(res.data); 
+                        session.trening = data;
+                        if (!session.trening.hasOwnProperty('date')) session.trening.date = Number(new Date());
+                        const rDate = new Date();
+                        const sDate = new Date(session.trening.date);
+                        if (!((rDate.getFullYear()===sDate.getFullYear())&&(rDate.getMonth()===sDate.getMonth()))) session.trening.onTarget = 0;
+                        let arr = [];
+                        if ((session.trening.target)&&(session.trening.target>0)) {arr.push(Markup.button.callback(`➕ к прогрессу`, `tgTrn++`));
+                        arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))}
+                        arr.push(Markup.button.callback(`задать цель на месяц`, `tgTrnNew`));
+                        data.list.map((item, index)=>arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`)));
+                        arr.push(Markup.button.callback(`Создать категорию`, `crTrnCat`));
+                        arr.push(Markup.button.callback(`Назад`, `StartP`));
+                        ctx.replyWithHTML(
+                            (session.trening.target&&session.trening.target>0) ? 
+                                `Прогресс:\n${progressBar((100*(session.trening.onTarget)||0)/(session.trening.target||1))}\n${session.trening.onTarget||'0'} из ${session.trening.target}\n${session.trening.onTarget>=session.trening.target?'♿'+prize+prize+prize+'♿':''}\nВыбери категорию` : 
+                                'Выбери категорию:', 
+                            Markup.inlineKeyboard(arr, {columns: 1} ))
+                        break;
+                    }
+                    else {
+                        logger.warn(`При создании списка тренировок для ${ctx.from.username||ctx.from.id} возникла ошибка`);
+                        ctx.reply('Что-то пошло не так, попробуйте позже');
+                        break;
+                    }
+                }
+                else if (res.status===200) {
+                    let data = parseT(res.data); 
+                    session.trening = data;
+                    if (!session.trening.hasOwnProperty('date')) session.trening.date = Number(new Date());
+                    const rDate = new Date();
+                    const sDate = new Date(session.trening.date);
+                    if (!((rDate.getFullYear()===sDate.getFullYear())&&(rDate.getMonth()===sDate.getMonth()))) session.trening.onTarget = 0;
+                    let arr = [];
+                    if ((session.trening.target)&&(session.trening.target>0)){ arr.push(Markup.button.callback(`➕ к прогрессу`, `tgTrn++`));
+                    arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))};
+                    arr.push(Markup.button.callback(`задать цель на месяц`, `tgTrnNew`));
+                    data.list.map((item, index)=>arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`)));
+                    arr.push(Markup.button.callback(`Создать категорию`, `crTrnCat`));
+                    arr.push(Markup.button.callback(`Назад`, `StartP`));
+                    ctx.replyWithHTML(
+                        (session.trening.target&&session.trening.target>0) ? 
+                            `Прогресс:\n${progressBar((100*(session.trening.onTarget)||0)/(session.trening.target||1))}\n${session.trening.onTarget||'0'} из ${session.trening.target}\n${session.trening.onTarget>=session.trening.target?'♿'+prize+prize+prize+'♿':''}\nВыбери категорию` : 
+                            'Выбери категорию:', 
+                        Markup.inlineKeyboard(arr, {columns: 1} ))
+                    break;
+                }
+
+                else {
+                    ctx.reply('Что-то пошло не так, попробуйте позже');
+                    break;
+                }
+            }
+
+            case 'trnList:' : {
+                let item = Number(ctx.callbackQuery.data.slice(8));
+                let arr = [];
+                session.trening.list[item].array.map((items, index)=>arr.push(Markup.button.callback(`${items.name} - ${items.w}`, `trenTren${item}&&${index}`)));
+                arr.push(Markup.button.callback(`Изменить запись через WEB`, `editWebT${item}`));
+                arr.push(Markup.button.callback('Добавить запись', `addTren:${item}`));
+                arr.push(Markup.button.callback('Переименовать категорию', `reNmCatT${item}`));
+                arr.push(Markup.button.callback('Удалить категорию', `delCatT:${item}`));
+                arr.push(Markup.button.callback('Назад', `trening`));
+                ctx.replyWithHTML('Выбери запись:', Markup.inlineKeyboard(arr, {columns: 1} ))
+                break;
+            }       
+
+            case 'crTrnCat' : {
+                session.status='crTrnCat';
+                ctx.reply('Пришли мне название категории');
+                break;
+            }
+
+            case 'tgTrnNew' : {
+                session.status = 'tgTrnNew';
+                ctx.reply('Пришли мне цель');
+                break;
+            }
+
+            case 'addTren:' : {
+                session.tecnicalTren = Number(ctx.callbackQuery.data.slice(8));
+                session.status = 'addTren:';
+                ctx.reply('Пришли мне название');
+                break;
+            }
+
+            case 'reNmCatT' : {
+                session.tecnicalTren = Number(ctx.callbackQuery.data.slice(8));
+                session.status = 'reNmCatT';
+                ctx.reply('Пришли мне новое название');
+                break;
+            }
+
+            case 'delCatT:' : {
+                session.YorNid = ctx.callbackQuery.data;
+                YorNkeyboard(ctx, `Удаляем ${session.trening.list[Number(ctx.callbackQuery.data.slice(8))].name}?`);
+                break;
+            }
+
+            case 'trenTren' : {
+                let par = ctx.callbackQuery.data.slice(8);
+                let itemStr = par.split('&&');
+                let item = [];
+                itemStr.map(str=>item.push(Number(str)));
+                let obj = session.trening.list[item[0]].array[item[1]];
+                ctx.replyWithHTML(`${obj.name}\nВес: ${obj.w}`, Markup.inlineKeyboard([
+                    Markup.button.callback(`Изменить название`, `edNameT:${item[0]}&&${item[1]}`),
+                    Markup.button.callback(`Изменить вес`, `editWT::${item[0]}&&${item[1]}`),
+                    Markup.button.callback(`Удалить`, `DelTrenN${item[0]}&&${item[1]}`),
+                    Markup.button.callback(`Назад`, `trnList:${item[0]}`)
+                ], {columns: 1} ));
+                break;
+            }
+
+            case 'DelTrenN' : {
+                let par = ctx.callbackQuery.data.slice(8);
+                let item = par.split('&&');
+                let se = [Number(item[0]), Number(item[1])]
+                session.YorNid = ctx.callbackQuery.data;
+                YorNkeyboard(ctx, `Удаляем ${session.trening.list[se[0]].array[se[1]].name}?`);
+                break;
+            }            
+
+            case 'edNameT:' : {
+                let par = ctx.callbackQuery.data.slice(8);
+                let item = par.split('&&');
+                session.tecnicalSub = [Number(item[0]), Number(item[1])]
+                session.status = 'edNameT:';
+                ctx.reply('Пришли мне новое название');
+                break;
+            }
+
+            case 'editWT::' : {
+                let par = ctx.callbackQuery.data.slice(8);
+                let item = par.split('&&');
+                session.tecnicalSub = [Number(item[0]), Number(item[1])]
+                session.status = 'editWT::';
+                ctx.reply('Пришли мне вес/повторы');
+                break;
+            }
+
+            //
+
             case 'delCat::' : {
                 session.YorNid = ctx.callbackQuery.data;
                 YorNkeyboard(ctx, `Удаляем ${session.serials.list[Number(ctx.callbackQuery.data.slice(8))].name}?`);
                 break;
             }
+
+            //Клавиатура Да Нет
 
             case 'YESkeyb' : {
                 let id = session.YorNid;
@@ -35,6 +246,22 @@ async function callback_query(ctx, logger) {
                     }
                     else {
                         logger.error(`id: ${ctx.from.id}: api ответил статусом: ${res.status} при команде updateSerialList (${ctx.callbackQuery.data})`)
+                        ctx.reply('Что-то пошло не так');
+                        break;
+                    }
+                }
+                else if (id.slice(0,8)==='delCatT:') {
+                    let item = Number(id.slice(8));
+                    session.trening.list.splice(item, 1);
+                    let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                    if (res.status === 200) {
+                        logger.trace(`id: ${ctx.from.id}: api ok`)
+                        trig = false;
+                        startKeyboard(ctx, 'Готово');
+                        break;
+                    }
+                    else {
+                        logger.error(`id: ${ctx.from.id}: api ответил статусом: ${res.status} при команде updateTreningList (${ctx.callbackQuery.data})`)
                         ctx.reply('Что-то пошло не так');
                         break;
                     }
@@ -54,6 +281,23 @@ async function callback_query(ctx, logger) {
                         break;
                     }
                 }
+                else if (id.slice(0, 8) === 'DelTrenN') {
+                    let se = id.slice(8).split('&&');
+                    let item = [Number(se[0]), Number(se[1])];
+                    session.trening.list[item[0]].array.splice(item[1], 1);
+                    let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                    if (res.status === 200) {
+                        logger.trace(`id: ${ctx.from.id}: api ok`)
+                        trig = false;
+                        startKeyboard(ctx, 'Готово');
+                        break;
+                    }
+                    else {
+                        logger.error(`id: ${ctx.from.id}: api ответил статусом: ${res.status} при команде updateTreningList (${ctx.callbackQuery.data})`)
+                        ctx.reply('Что-то пошло не так');
+                        break;
+                    }
+                }
                 else {
                     ctx.reply('Что-то непонятное произошло');
                     break;
@@ -67,9 +311,19 @@ async function callback_query(ctx, logger) {
                     if (id.slice(0,8)==='delCat::') {
                         ctx.reply('Нет так нет');
                     }
+                    else if (id.slice(0,8)==='delCatT:') {
+                        startKeyboard(ctx, 'Нет так нет');
+                        break;
+                    }
+                    else  if (id.slice(0,8)==='DelTrenN') {
+                        startKeyboard(ctx, 'Нет так нет');
+                        break;
+                    }
                 }
                 delete(session.YorNid);
             }
+
+            //
 
             case 'serials' : {
                 session.status='serials';
@@ -109,7 +363,7 @@ async function callback_query(ctx, logger) {
                 session.serials = serials;
                 res = await sendPost(original(serials), 'updateSerialList', `Bearer ${session.token}`);
                 ctx.replyWithHTML('Выбери категорию:', Markup.inlineKeyboard([
-                        Markup.button.callback(`Без категории`, `serList:Без категории`),
+                        Markup.button.callback(`Без категории`, `serList:0`),
                         Markup.button.callback(`Создать категорию`, `crSerCat`),
                         Markup.button.callback(`Назад`, `StartP`),
                     ], {columns: 1} ))
@@ -144,13 +398,6 @@ async function callback_query(ctx, logger) {
                 session.tecnicalSerial = Number(ctx.callbackQuery.data.slice(8));
                 session.status = 'addSer::';
                 ctx.reply('Пришли мне название сериала');
-                break;
-            }
-
-            case 'reNmCat:' : {
-                session.tecnicalSerial = Number(ctx.callbackQuery.data.slice(8));
-                session.status = 'reNmCat:';
-                ctx.reply('Пришли мне новое название');
                 break;
             }
 

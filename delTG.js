@@ -24,8 +24,11 @@ async function start() {
     }
 
     else if ((process.argv[2]==='-dUs')&&(process.argv[3])) {
-        console.log('delete '+process.argv[3])
         await deleteOne(process.argv[3]);
+    }
+
+    else if ((process.argv[2]==='-aUs')&&(process.argv[3])) {
+        console.log(await findOne({login: process.argv[3]}))
     }
 
     else if ((process.argv[2]==='-u')) {
@@ -78,5 +81,24 @@ async function updateOne(oldObj, obj) {
     } finally {
         await mongoClient.close();
         return userLogin
+    }
+}
+
+async function findOne(obj) {
+    let extBuf = [];
+    try {
+        await mongoClient.connect();
+        if (obj) {
+            extBuf = await collection.find(obj).toArray();
+        }
+        else {
+            extBuf = await collection.find().toArray();
+        }
+    }catch(err) {
+        logger.error('not find')
+        extBuf=[];
+    } finally {
+        await mongoClient.close();
+        return extBuf;
     }
 }
