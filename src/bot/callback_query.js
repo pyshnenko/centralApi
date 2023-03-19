@@ -7,7 +7,7 @@ const compare = require("./../../compare");
 const sendPost = require('./api');
 const {startKeyboard, isEmpty, accUsList, okText, nokText, YorNkeyboard, progressBar} = require("./other");
 const {parse, parseT, original, originalT} = require("./listsReorginizer")
-const formUrl = 'https://spamigor.site/build';
+const formUrl = 'https://spamigor.site/list';
 let jwt = require('jsonwebtoken');
 
 async function callback_query(ctx, logger, process) {
@@ -46,22 +46,11 @@ async function callback_query(ctx, logger, process) {
                     ),
                 ]))
                 break;
-            }                  
-            
-            case 'tgTrnRem' : {
-                if (trig) {
-                    session.status='tgTrn++';
-                    let date = new Date();
-                    date.setMonth(date.getMonth()-1);
-                    session.trening.date=Number(date);
-                    let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
-                    trig = false;
-                }
             }
             
             case 'tgTrnRep' : {
                 if (trig) {
-                    session.status='tgTrn++';
+                    session.status='tgTrnRep';
                     session.trening.onTarget=0;
                     let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
                     trig = false;
@@ -85,20 +74,22 @@ async function callback_query(ctx, logger, process) {
                     if (result.status ===200) {
                         let data = parseT(res.data); 
                         session.trening = data;
-                        if (!session.trening.hasOwnProperty('date')) session.trening.date = Number(new Date());
+                        let jDate = (new Date()).setMonth((new Date()).getMonth()+1);
+                        if (!session.trening.hasOwnProperty('date')) session.trening.date = Number(jDate);
                         const rDate = new Date();
                         const sDate = new Date(session.trening.date);
-                        if (!((rDate.getFullYear()===sDate.getFullYear())&&(rDate.getMonth()===sDate.getMonth()))) session.trening.onTarget = 0;
+                        if (rDate>sDate) session.trening.onTarget = 0;
                         let arr = [];
                         if ((session.trening.target)&&(session.trening.target>0)) {arr.push(Markup.button.callback(`➕ к прогрессу`, `tgTrn++`));
                         arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))}
                         arr.push(Markup.button.callback(`задать цель на месяц`, `tgTrnNew`));
+                        arr.push(Markup.button.callback(`задать дату обновления`, `tgTrnNDt`));
                         data.list.map((item, index)=>arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`)));
                         arr.push(Markup.button.callback(`Создать категорию`, `crTrnCat`));
                         arr.push(Markup.button.callback(`Назад`, `StartP`));
                         ctx.replyWithHTML(
                             (session.trening.target&&session.trening.target>0) ? 
-                                `Прогресс:\n${progressBar((100*(session.trening.onTarget)||0)/(session.trening.target||1))}\n${session.trening.onTarget||'0'} из ${session.trening.target}\n${session.trening.onTarget>=session.trening.target?'♿'+prize+prize+prize+'♿':''}\nВыбери категорию` : 
+                                `Прогресс:\n${progressBar((100*(session.trening.onTarget)||0)/(session.trening.target||1))}\n${session.trening.onTarget||'0'} из ${session.trening.target}\n${session.trening.onTarget>=session.trening.target?'♿'+prize+prize+prize+'♿':''}\nДата следующего сброса:\n${sDate.toLocaleDateString('ru-RU')}\nВыбери категорию` : 
                                 'Выбери категорию:', 
                             Markup.inlineKeyboard(arr, {columns: 1} ))
                         break;
@@ -112,20 +103,22 @@ async function callback_query(ctx, logger, process) {
                 else if (res.status===200) {
                     let data = parseT(res.data); 
                     session.trening = data;
-                    if (!session.trening.hasOwnProperty('date')) session.trening.date = Number(new Date());
+                    let jDate = (new Date()).setMonth((new Date()).getMonth()+1);
+                    if (!session.trening.hasOwnProperty('date')) session.trening.date = Number(jDate);
                     const rDate = new Date();
                     const sDate = new Date(session.trening.date);
-                    if (!((rDate.getFullYear()===sDate.getFullYear())&&(rDate.getMonth()===sDate.getMonth()))) session.trening.onTarget = 0;
+                    if (rDate>sDate) session.trening.onTarget = 0;
                     let arr = [];
-                    if ((session.trening.target)&&(session.trening.target>0)){ arr.push(Markup.button.callback(`➕ к прогрессу`, `tgTrn++`));
-                    arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))};
+                    if ((session.trening.target)&&(session.trening.target>0)) {arr.push(Markup.button.callback(`➕ к прогрессу`, `tgTrn++`));
+                    arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))}
                     arr.push(Markup.button.callback(`задать цель на месяц`, `tgTrnNew`));
+                    arr.push(Markup.button.callback(`задать дату обновления`, `tgTrnNDt`));
                     data.list.map((item, index)=>arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`)));
                     arr.push(Markup.button.callback(`Создать категорию`, `crTrnCat`));
                     arr.push(Markup.button.callback(`Назад`, `StartP`));
                     ctx.replyWithHTML(
                         (session.trening.target&&session.trening.target>0) ? 
-                            `Прогресс:\n${progressBar((100*(session.trening.onTarget)||0)/(session.trening.target||1))}\n${session.trening.onTarget||'0'} из ${session.trening.target}\n${session.trening.onTarget>=session.trening.target?'♿'+prize+prize+prize+'♿':''}\nВыбери категорию` : 
+                            `Прогресс:\n${progressBar((100*(session.trening.onTarget)||0)/(session.trening.target||1))}\n${session.trening.onTarget||'0'} из ${session.trening.target}\n${session.trening.onTarget>=session.trening.target?'♿'+prize+prize+prize+'♿':''}\nДата следующего сброса:\n${sDate.toLocaleDateString('ru-RU')}\nВыбери категорию` : 
                             'Выбери категорию:', 
                         Markup.inlineKeyboard(arr, {columns: 1} ))
                     break;
@@ -149,6 +142,12 @@ async function callback_query(ctx, logger, process) {
                 ctx.replyWithHTML('Выбери запись:', Markup.inlineKeyboard(arr, {columns: 1} ))
                 break;
             }       
+
+            case 'tgTrnNDt' : {
+                session.status='tgTrnNDt';
+                ctx.reply('Пришли мне число (1-31). В этот день будет сбрасываться счетчик');
+                break;
+            }  
 
             case 'crTrnCat' : {
                 session.status='crTrnCat';

@@ -42,6 +42,29 @@ async function textHandler(ctx, logger) {
             else ctx.reply('Проверь ввод и повтори');
         }
 
+        else if (ctx.session.status==='tgTrnNDt') {
+            let date = Number(ctx.message.text);
+            if ((date)&&(date>=1)&&(date<=31)) {
+                session.status = 'work';
+                let sDate = new Date();
+                sDate.setMilliseconds(0);
+                sDate.setSeconds(0);
+                sDate.setMinutes(0);
+                sDate.setHours(0);
+                sDate.setDate(date);
+                if (date<=((new Date()).getDate())) sDate.setMonth(sDate.getMonth()+1);
+                session.trening.date=Number(sDate);
+                let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                if (res.status===200) {
+                    startKeyboard(ctx, 'Готово');
+                }
+                else {
+                    startKeyboard(ctx, 'Неудача')
+                }
+            }
+            else ctx.reply('Некорректный ввод. Пожалуйста, повтори')
+        }
+
         else if (ctx.session.status==='crTrnCat') {
             session.status = 'work';
             session.trening.list.push({ array: [], name: ctx.message.text.trim() });
