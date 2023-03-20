@@ -113,7 +113,7 @@ async function callback_query(ctx, logger, process) {
                     arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))}
                     arr.push(Markup.button.callback(`задать цель на месяц`, `tgTrnNew`));
                     arr.push(Markup.button.callback(`задать дату обновления`, `tgTrnNDt`));
-                    data.list.map((item, index)=>{if ((item!=='target')&&(item!=='onTarget')&&(item!=='date')) arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`))});
+                    data.list.map((item, index)=>arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`)));
                     arr.push(Markup.button.callback(`Создать категорию`, `crTrnCat`));
                     arr.push(Markup.button.callback(`Назад`, `StartP`));
                     ctx.replyWithHTML(
@@ -133,13 +133,23 @@ async function callback_query(ctx, logger, process) {
             case 'trnList:' : {
                 let item = Number(ctx.callbackQuery.data.slice(8));
                 let arr = [];
-                session.trening.list[item].array.map((items, index)=>{if ((item!=='target')&&(item!=='onTarget')&&(item!=='date')) arr.push(Markup.button.callback(`${items.name} - ${items.w}`, `trenTren${item}&&${index}`))});
+                let jDate = (new Date()).setMonth((new Date()).getMonth()+1);
+                if (!session.trening.list[item].hasOwnProperty('date')) session.trening.list[item].date = Number(jDate);
+                const rDate = new Date();
+                const sDate = new Date(session.trening.list[item].date);
+                if (rDate>sDate) session.trening.list[item].onTarget = 0;
+                console.log(session.trening.list[item].array)
+                session.trening.list[item].array.map((items, index)=>arr.push(Markup.button.callback(`${items.name} - ${items.w}`, `trenTren${item}&&${index}`)));
                 arr.push(Markup.button.callback(`Изменить запись через WEB`, `editWebT${item}`));
                 arr.push(Markup.button.callback('Добавить запись', `addTren:${item}`));
                 arr.push(Markup.button.callback('Переименовать категорию', `reNmCatT${item}`));
                 arr.push(Markup.button.callback('Удалить категорию', `delCatT:${item}`));
                 arr.push(Markup.button.callback('Назад', `trening`));
-                ctx.replyWithHTML('Выбери запись:', Markup.inlineKeyboard(arr, {columns: 1} ))
+                console.log('item')
+                console.log(session.trening.list[item]);
+                ctx.replyWithHTML((session.trening.list[item].target&&session.trening.list[item].target>0) ? 
+                `Прогресс:\n${progressBar((100*(session.trening.list[item].onTarget)||0)/(session.trening.list[item].target||1))}\n${session.trening.list[item].onTarget||'0'} из ${session.trening.list[item].target}\n${session.trening.list[item].onTarget>=session.trening.list[item].target?'♿'+prize+prize+prize+'♿':''}\nДата следующего сброса:\n${sDate.toLocaleDateString('ru-RU')}\nВыбери категорию` : 
+                'Выбери запись:', Markup.inlineKeyboard(arr, {columns: 1} ))
                 break;
             }       
 
