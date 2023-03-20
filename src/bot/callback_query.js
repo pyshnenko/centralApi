@@ -84,7 +84,7 @@ async function callback_query(ctx, logger, process) {
                         arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))}
                         arr.push(Markup.button.callback(`задать цель на месяц`, `tgTrnNew`));
                         arr.push(Markup.button.callback(`задать дату обновления`, `tgTrnNDt`));
-                        data.list.map((item, index)=>arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`)));
+                        data.list.map((item, index)=>{if ((item!=='target')&&(item!=='onTarget')&&(item!=='date')) arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`))});
                         arr.push(Markup.button.callback(`Создать категорию`, `crTrnCat`));
                         arr.push(Markup.button.callback(`Назад`, `StartP`));
                         ctx.replyWithHTML(
@@ -113,7 +113,7 @@ async function callback_query(ctx, logger, process) {
                     arr.push(Markup.button.callback(`🔄 Сбросить прогресс`, `tgTrnRep`))}
                     arr.push(Markup.button.callback(`задать цель на месяц`, `tgTrnNew`));
                     arr.push(Markup.button.callback(`задать дату обновления`, `tgTrnNDt`));
-                    data.list.map((item, index)=>arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`)));
+                    data.list.map((item, index)=>{if ((item!=='target')&&(item!=='onTarget')&&(item!=='date')) arr.push(Markup.button.callback(`${item.name}`, `trnList:${index}`))});
                     arr.push(Markup.button.callback(`Создать категорию`, `crTrnCat`));
                     arr.push(Markup.button.callback(`Назад`, `StartP`));
                     ctx.replyWithHTML(
@@ -133,7 +133,7 @@ async function callback_query(ctx, logger, process) {
             case 'trnList:' : {
                 let item = Number(ctx.callbackQuery.data.slice(8));
                 let arr = [];
-                session.trening.list[item].array.map((items, index)=>arr.push(Markup.button.callback(`${items.name} - ${items.w}`, `trenTren${item}&&${index}`)));
+                session.trening.list[item].array.map((items, index)=>{if ((item!=='target')&&(item!=='onTarget')&&(item!=='date')) arr.push(Markup.button.callback(`${items.name} - ${items.w}`, `trenTren${item}&&${index}`))});
                 arr.push(Markup.button.callback(`Изменить запись через WEB`, `editWebT${item}`));
                 arr.push(Markup.button.callback('Добавить запись', `addTren:${item}`));
                 arr.push(Markup.button.callback('Переименовать категорию', `reNmCatT${item}`));
