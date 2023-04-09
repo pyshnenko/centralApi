@@ -156,7 +156,7 @@ bot.launch(mailLog.info('bot start'));
 bot.catch((err)=>console.log(err));
 
 process.on('uncaughtException', (err, origin) => {
-    mailer.fatal('Все, пиздец')
+    mailLog.fatal('Все, пиздец')
 });
 
 process.once('SIGINT', () => {

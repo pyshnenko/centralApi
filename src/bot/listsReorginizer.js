@@ -26,7 +26,6 @@ module.exports.original = function(inList) {
 }
 
 module.exports.parseT = function(originalList) {
-    console.log(originalList)
     let arr = [];
     for (let key in originalList.categories) {
         let inArr = [];
@@ -39,26 +38,29 @@ module.exports.parseT = function(originalList) {
             else if (inKey==='date') date = originalList.categories[key][inKey];
             else inArr.push({...originalList.categories[key][inKey], name: inKey})
         }
-        console.log(inArr)
         arr.push({array: inArr, name: key, target, onTarget, date});
     }
-    console.log({...originalList, list: arr})
     return {...originalList, list: arr};
 }
 
 module.exports.originalT = function(inList) {
+    console.log('\n\noriginalT\n\n')
     console.log(inList)
     let extObj = {...inList};
     let bufObj = {};
     inList.list.map((item)=>{
+        console.log('\n\noriginalT item\n\n')
+        console.log(item)
         let buf = {};        
         item.array.map((inItem)=>{
             buf[inItem.name]={...inItem}
             delete(buf[inItem.name].name)
         })
-        buf.target = inList.list.target;
-        buf.onTarget = inList.list.onTarget;
-        buf.date = inList.list.date;
+        buf.target = item.target;
+        buf.onTarget = item.onTarget;
+        buf.date = item.date;
+        console.log('\n\nbuf\n\n')
+        console.log(buf)
         bufObj[item.name] = buf;
     })
     extObj.categories = {...bufObj};

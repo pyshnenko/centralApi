@@ -130,6 +130,20 @@ async function callback_query(ctx, logger, process) {
                 }
             }
 
+            case 'trnTargP' : {
+                let item = Number(ctx.callbackQuery.data.slice(8));
+                session.trening.list[item].onTarget++;
+                let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
+                if (res.status===200) {
+                    let data = parseT(res.data); 
+                    session.trening = data;
+                }
+                else {
+                    startKeyboard(ctx, 'Ошибка доступа к базе');
+                    break;
+                }
+            }
+
             case 'trnList:' : {
                 let item = Number(ctx.callbackQuery.data.slice(8));
                 let arr = [];
@@ -138,15 +152,13 @@ async function callback_query(ctx, logger, process) {
                 const rDate = new Date();
                 const sDate = new Date(session.trening.list[item].date);
                 if (rDate>sDate) session.trening.list[item].onTarget = 0;
-                console.log(session.trening.list[item].array)
+                if (session.trening.list[item].target) arr.push(Markup.button.callback(`➕ к прогрессу`, `trnTargP${item}`))
                 session.trening.list[item].array.map((items, index)=>arr.push(Markup.button.callback(`${items.name} - ${items.w}`, `trenTren${item}&&${index}`)));
                 arr.push(Markup.button.callback(`Изменить запись через WEB`, `editWebT${item}`));
                 arr.push(Markup.button.callback('Добавить запись', `addTren:${item}`));
                 arr.push(Markup.button.callback('Переименовать категорию', `reNmCatT${item}`));
                 arr.push(Markup.button.callback('Удалить категорию', `delCatT:${item}`));
                 arr.push(Markup.button.callback('Назад', `trening`));
-                console.log('item')
-                console.log(session.trening.list[item]);
                 ctx.replyWithHTML((session.trening.list[item].target&&session.trening.list[item].target>0) ? 
                 `Прогресс:\n${progressBar((100*(session.trening.list[item].onTarget)||0)/(session.trening.list[item].target||1))}\n${session.trening.list[item].onTarget||'0'} из ${session.trening.list[item].target}\n${session.trening.list[item].onTarget>=session.trening.list[item].target?'♿'+prize+prize+prize+'♿':''}\nДата следующего сброса:\n${sDate.toLocaleDateString('ru-RU')}\nВыбери категорию` : 
                 'Выбери запись:', Markup.inlineKeyboard(arr, {columns: 1} ))
@@ -737,7 +749,7 @@ async function callback_query(ctx, logger, process) {
                 if (ctx.callbackQuery.data[8]!=='S') {
                     let res = await sendPost({id: id}, 'setHash', `Bearer ${session.token}`);
                     if (res.status===200) {
-                        let addr = new URL('https://spamigor.site/build/');
+                        let addr = new URL('https://spamigor.site/list/');
                         addr.searchParams.append('list', res.data.hash);
                         addr.searchParams.append('done', 'stList');
                         ctx.reply(addr.href);
