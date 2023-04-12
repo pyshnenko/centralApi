@@ -1,0 +1,32 @@
+<body>
+  <ul id="events"></ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const $events = document.getElementById('events')
+
+    const newItem = (content) => {
+      const item = document.createElement('li')
+      item.innerText = content
+      return item
+    }
+    const URL = "https://io.spamigor.site";
+    const socket = io(URL)
+
+    socket.on('connect', () => {
+      $events.appendChild(newItem('Подключение установлено'))
+    })
+
+    // получаем данные от сервера
+    socket.on('hello', (counter) => {
+      $events.appendChild(newItem(`Привет - ${counter}`))
+    })
+
+    // отправляем данные на сервер
+    let counter = 0
+    setInterval(() => {
+      ++counter
+      socket.emit('hi', { counter })
+    }, 1000)
+  </script>
+</body>

@@ -8,7 +8,7 @@ const httpServer = require('http').createServer((req, res) => {
 
 const io = require('socket.io')(httpServer, {
   cors: {
-    origin: "https://test.spamigor.site",
+    origin: "https://spamigor.site",
   },
 });
 
@@ -31,9 +31,12 @@ io.on('connection', socket => {
     socket.leave(String(data));
   });
   socket.on('edit', data => {
-    let buf = JSON.parse(data);
-    console.log(buf);
-    io.to(String(buf.id)).emit('edit', data);
+    console.log(data)
+    if (data!==null) {
+      let buf = JSON.parse(data);
+      console.log(buf);
+      io.to(String(buf.id)).emit('edit', data);
+    }
   });
 })
 
