@@ -11,9 +11,9 @@ const redirectPage = '/build';
 const log4js = require("log4js");
 
 let options = {
-  key: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/privkey.crt"),
-  cert: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/fullchain.crt"),
-ca: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/chain.crt")
+  key: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/privkey.crt"),
+  cert: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/fullchain.crt"),
+ca: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/chain.crt")
 };
 
 log4js.configure({

@@ -21,7 +21,7 @@
     "fs": "^0.0.1-security",
     "intel": "^1.2.0",
     "ioredis": "^5.2.4",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "log4js": "^6.9.1",
     "mongodb": "^4.12.1",
     "multer": "^1.4.5-lts.1",

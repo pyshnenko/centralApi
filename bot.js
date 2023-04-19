@@ -12,9 +12,9 @@ const {parse, original} = require("./src/bot/listsReorginizer");
 const delMess = require("./src/bot/historyClear");
 
 let options = {
-    key: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/privkey.crt"),
-    cert: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/fullchain.crt"),
-	ca: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/chain.crt")
+    key: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/privkey.crt"),
+    cert: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/fullchain.crt"),
+	ca: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/chain.crt")
 };
 const log4js = require("log4js");
 log4js.configure({

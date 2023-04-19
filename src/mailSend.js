@@ -2,12 +2,12 @@ const fs = require("fs");
 var CryptoJS = require("crypto-js");
 const nodemailer = require('nodemailer');
 let testEmailAccount = nodemailer.createTestAccount();
-let myURL = 'http://45.89.66.91:8765';
+let myURL = 'http://212.22.94.200:8765';
 
 let options = {
-	key: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/privkey.crt"),
-    cert: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/fullchain.crt"),
-	ca: fs.readFileSync("/home/spamigor/next/api/js/centralapi/src/sert/chain.crt")
+    key: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/privkey.crt"),
+    cert: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/fullchain.crt"),
+	ca: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/chain.crt")
 };
 
 let transporter = nodemailer.createTransport({

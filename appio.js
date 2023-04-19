@@ -1,4 +1,5 @@
-const content = require('fs').readFileSync(__dirname + '/index.html', 'utf8')
+const content = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+process.title='IOServer';
 
 const httpServer = require('http').createServer((req, res) => {
   res.setHeader('Content-Type', 'text/html')
@@ -8,7 +9,7 @@ const httpServer = require('http').createServer((req, res) => {
 
 const io = require('socket.io')(httpServer, {
   cors: {
-    origin: "https://spamigor.site",
+    origin: "*",
   },
 });
 
