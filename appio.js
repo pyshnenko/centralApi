@@ -39,6 +39,22 @@ io.on('connection', socket => {
       io.to(String(buf.id)).emit('edit', data);
     }
   });
+  socket.on('hiSum', data => {
+    console.log('hiSum', data);
+    socket.join('sum'+String(data));
+  });
+  socket.on('bye', data => {
+    console.log('bye', data);
+    socket.leave('sum'+String(data));
+  });
+  socket.on('editSum', data => {
+    console.log(data)
+    if (data!==null) {
+      let buf = JSON.parse(data);
+      console.log(buf);
+      io.to('sum'+String(buf.id)).emit('editSum', data);
+    }
+  });
 })
 
 httpServer.listen(8813, () => {
