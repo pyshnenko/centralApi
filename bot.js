@@ -10,6 +10,7 @@ const sendPost = require('./src/bot/api');
 const callback_query = require('./src/bot/callback_query');
 const {parse, original} = require("./src/bot/listsReorginizer");
 const delMess = require("./src/bot/historyClear");
+const {IOStart} = require('./appio');
 
 let options = {
     key: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/privkey.crt"),
@@ -42,9 +43,11 @@ log4js.configure({
     },
     categories: { default: { appenders: ['console', "bot"], level: "all" },
                 mailer: { appenders: ['mail', 'console', 'bot'], level: 'all' }, },
-  });
+});
 const logger = log4js.getLogger("bot2");
-const mailLog = log4js.getLogger("mailer");
+const mailLog = log4js.getLogger("mailer222");
+
+IOStart(8813, bot);
 
 const okLbl='✅ ';
 const nokLbl='❌ ';
@@ -156,7 +159,8 @@ bot.launch(mailLog.info('bot start'));
 bot.catch((err)=>console.log(err));
 
 process.on('uncaughtException', (err, origin) => {
-    mailLog.fatal('Все, пиздец')
+    mailLog.fatal('Все, пиздец');
+    console.log(err)
 });
 
 process.once('SIGINT', () => {
