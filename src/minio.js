@@ -164,6 +164,7 @@ class MinioClass {
         else {
           try {
             dataStream.on('data', function(chunk) {
+              console.log('chunk');
               dataS += chunk
             });
             dataStream.on('end', function() {
@@ -171,6 +172,7 @@ class MinioClass {
               console.log('stream end');
               console.log(data);
               res(data);
+              return
             })
             dataStream.on('error', function(e) {
               console.log('stream err');

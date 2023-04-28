@@ -47,7 +47,9 @@ log4js.configure({
 const logger = log4js.getLogger("bot2");
 const mailLog = log4js.getLogger("mailer222");
 
-IOStart(8813, bot);
+const IOSend = IOStart(8813, bot);
+console.log(typeof(IOSend));
+IOSend('','',true)
 
 const okLbl='✅ ';
 const nokLbl='❌ ';
@@ -83,7 +85,7 @@ bot.start( async (ctx) =>  {
         session.user=res.data.data[0];
         session.status='work';
         ctx.session=session;
-        startKeyboard(ctx);
+        startKeyboard(ctx, null, (session.user.role==='admin'));
     }
     else {
         ctx.reply('Сервер временно недоступен. Попробуйте позже');
@@ -101,7 +103,7 @@ bot.on('callback_query', async (ctx) => {
 
 bot.on('text', async (ctx) => {
     logger.trace('text: ' + ctx.from.id + ": " + ctx.message.text)
-    await textHandler(ctx, logger);
+    await textHandler(ctx, logger, IOSend);
     delMess(ctx, ctx.message.message_id+1, logger);
 });
 

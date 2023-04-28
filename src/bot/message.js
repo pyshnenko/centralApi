@@ -4,17 +4,49 @@ const {startKeyboard, isEmpty, accUsList, okText, nokText} = require("./other");
 const { Markup } = require('telegraf');
 const okLbl='✅ ';
 const nokLbl='❌ ';
-const {parse, parseT, original, originalT} = require("./listsReorginizer")
+const {parse, parseT, original, originalT} = require("./listsReorginizer");
+const {message} = require('../../appio');
 
-async function textHandler(ctx, logger) {
+
+async function textHandler(ctx, logger, IOSend) {
     let err = false;
+    let delNeed = true;
     logger.trace('text: ' + ctx.from.id + ': ' + ctx.message.text);
     let session = {...ctx.session};
     if (session.hasOwnProperty('status')) {
 
         logger.info(`status: ${ctx.from.id}: ${session.status}`)
 
-        if (session.status==='login') {
+        //ЧАТ
+
+        if (ctx.message.text==='- Закрыть чат -') {
+            session.status = 'work';
+            delete(session.chatUser);
+            startKeyboard(ctx, 'Чат закрыт', session.user.role==='admin');
+            delNeed=false;
+        }
+
+        else if (ctx.session.status==='chatWork') {
+            delNeed=false;
+            console.log('send to '+session.chatUser+' mess: ' +ctx.message.text.trim() );
+            message(session.chatUser, ctx.message.text.trim())
+        }
+
+        else if (ctx.session.status==='chatOpen') {
+            delNeed=false;
+            let res = await sendPost({login: ctx.message.text.trim()}, 'checkLogin', '');
+            console.log(res.data);
+            if (res.data.result==='buzy') {
+                session.status = 'chatWork';
+                session.chatUser = ctx.message.text.trim();            
+                ctx.replyWithHTML('Введи текст или закрой чат', Markup.keyboard([
+                    ['- Закрыть чат -']
+                ]));
+            }
+            else ctx.reply('Пользователь не найден. попробуй снова');
+        }
+
+        else if (ctx.session.status==='login') {
             let res = await sendPost({login: ctx.message.text.trim(), loginTG: ctx.from.username, id: Number(ctx.from.id)}, 'connectTG', '');
             if (res.status===200) {
                 ctx.replyWithHTML('Данные переданы. Пожалуйста, перейдите на <a href="https://spamigor.site/build/">основной сайт</a>, зайдите в профиль и подтвердите Ваш аккаунт (возле графы "телеграм" нажмите на Х чтобы подтвердить)');
@@ -26,7 +58,7 @@ async function textHandler(ctx, logger) {
             }
         }
 
-        else if (session.status==='tgTrnNew') {
+        else if (ctx.session.status==='tgTrnNew') {
             let num = Number(ctx.message.text);
             if (num||(num===0)) {
                 session.status = 'work';
@@ -40,29 +72,6 @@ async function textHandler(ctx, logger) {
                 }
             }
             else ctx.reply('Проверь ввод и повтори');
-        }
-
-        else if (ctx.session.status==='tgTrnNDt') {
-            let date = Number(ctx.message.text);
-            if ((date)&&(date>=1)&&(date<=31)) {
-                session.status = 'work';
-                let sDate = new Date();
-                sDate.setMilliseconds(0);
-                sDate.setSeconds(0);
-                sDate.setMinutes(0);
-                sDate.setHours(0);
-                sDate.setDate(date);
-                if (date<=((new Date()).getDate())) sDate.setMonth(sDate.getMonth()+1);
-                session.trening.date=Number(sDate);
-                let res = await sendPost(originalT(session.trening), 'updateTreningList', `Bearer ${session.token}`);
-                if (res.status===200) {
-                    startKeyboard(ctx, 'Готово');
-                }
-                else {
-                    startKeyboard(ctx, 'Неудача')
-                }
-            }
-            else ctx.reply('Некорректный ввод. Пожалуйста, повтори')
         }
 
         else if (ctx.session.status==='crTrnCat') {
@@ -341,11 +350,13 @@ async function textHandler(ctx, logger) {
         ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
         logger.error(`uncnown error: user: ${ctx.from.id}, ${ctx.from.username}; status: ${session?.status}, message: ${ctx.message.text}`)
     }
-    for (let i = ctx.message.message_id; (i>0&&i>=ctx.message.message_id-3); i--)  {
-        try {
-            await ctx.deleteMessage(i)
+    if (delNeed) {
+        for (let i = ctx.message.message_id; (i>0&&i>=ctx.message.message_id-3); i--)  {
+            try {
+                await ctx.deleteMessage(i)
+            }
+            catch(e) {}
         }
-        catch(e) {}
     }
     ctx.session=session;
 }

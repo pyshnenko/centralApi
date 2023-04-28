@@ -12,12 +12,37 @@ let jwt = require('jsonwebtoken');
 
 async function callback_query(ctx, logger, process) {
     let trig = true;
-    ctx.answerCbQuery();
-    ctx.deleteMessage();
+    let del = true;
     let session = {...ctx.session};
     if ((!session.start)&&(isEmpty(session))) ctx.replyWithHTML('Ситуация мне непонятная. нажмите <b>"Старт"</b> (/start)');
     else {
         switch (ctx.callbackQuery.data.slice(0,8)) {
+
+            //ЧАТ
+
+            case 'PMessage' : {
+                ctx.reply('Пришли мне имя пользователя');
+                session.status='chatOpen';
+                break;
+            }
+
+            case 'replyTo:' : {
+                let name = ctx.callbackQuery.data.slice(8);
+                ctx.replyWithHTML('Введи текст или закрой чат', Markup.keyboard([
+                    ['- Закрыть чат -']
+                ]));
+                session.status='chatWork';
+                session.chatUser = name;
+                del = false;
+                break;
+            }
+
+            case 'closeCht' : {
+                session.status='work';
+                delete(session.chatUser);
+                startKeyboard(ctx, 'Закрыто', )
+                break;
+            }
 
             // ТРЕНИРОВКИ  
 
@@ -268,7 +293,7 @@ async function callback_query(ctx, logger, process) {
                     else {
                         logger.error(`id: ${ctx.from.id}: api ответил статусом: ${res.status} при команде updateSerialList (${ctx.callbackQuery.data})`)
                         ctx.reply('Что-то пошло не так');
-                        break;
+                        break;session
                     }
                 }
                 else if (id.slice(0,8)==='delCatT:') {
@@ -749,7 +774,7 @@ async function callback_query(ctx, logger, process) {
                 if (ctx.callbackQuery.data[8]!=='S') {
                     let res = await sendPost({id: id}, 'setHash', `Bearer ${session.token}`);
                     if (res.status===200) {
-                        let addr = new URL('https://spamigor.site/list/');
+                        let addr = new URL('https://spamigor.site/build/');
                         addr.searchParams.append('list', res.data.hash);
                         addr.searchParams.append('done', 'stList');
                         ctx.reply(addr.href);
@@ -815,6 +840,8 @@ async function callback_query(ctx, logger, process) {
         }
         ctx.session = session
     }
+    ctx.answerCbQuery();
+    if (del) ctx.deleteMessage();
 }
 
 module.exports = callback_query;

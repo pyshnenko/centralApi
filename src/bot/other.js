@@ -5,17 +5,19 @@ const nokLbl='❌ ';
 const greenBlock = '🟩';
 const redBlock = '🟥';
 
-module.exports.startKeyboard = async function(ctx, text) {
+module.exports.startKeyboard = async function(ctx, text, admin) {
     let mData = await ctx.reply('Обновим интерфейс', Markup.removeKeyboard(true));
     await ctx.deleteMessage(mData.message_id);
+    let arr = [
+        Markup.button.callback('Посмотреть мои списки', `lists`),
+        Markup.button.callback('Найти список по его ID', `seeById`),
+        Markup.button.callback('Блокнотик для сериальчиков', `serials`),
+        Markup.button.callback('Блокнотик тренировок', `trening`),
+    ];
+    if (admin) arr.push(Markup.button.callback('Сообщение пользователю', `PMessage`))
     ctx.replyWithHTML(
         (text||`Привет ${ctx.session.user.login}\n\nЧем займемся?`), 
-        Markup.inlineKeyboard([
-            Markup.button.callback('Посмотреть мои списки', `lists`),
-            Markup.button.callback('Найти список по его ID', `seeById`),
-            Markup.button.callback('Блокнотик для сериальчиков', `serials`),
-            Markup.button.callback('Блокнотик тренировок', `trening`),
-        ], {columns: 1}))
+        Markup.inlineKeyboard(arr, {columns: 1}))
 }
 
 module.exports.isEmpty = function(obj) {
