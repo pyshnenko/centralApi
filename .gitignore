@@ -2,9 +2,10 @@
 .env*
 /src/sert*
 /pages/pict*
-/uploads*
+/upload*
 /pict*
 /log*
+/chat*
 
 # dependencies
 /node_modules
