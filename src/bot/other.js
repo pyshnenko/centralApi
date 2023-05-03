@@ -4,6 +4,7 @@ const okLbl='✅ ';
 const nokLbl='❌ ';
 const greenBlock = '🟩';
 const redBlock = '🟥';
+const fs = require("fs");
 
 module.exports.startKeyboard = async function(ctx, text, admin) {
     let mData = await ctx.reply('Обновим интерфейс', Markup.removeKeyboard(true));
@@ -66,4 +67,42 @@ module.exports.progressBar = (value) => {
     }
     console.log(str)
     return str;
+}
+
+module.exports.checkFolder = (name) => {
+    let ddir = [];            
+    let chatFolder = fs.readdirSync("chat", { withFileTypes: true });
+    chatFolder=chatFolder.filter(d => d.isDirectory());
+    chatFolder.map(d => ddir.push(d.name));
+    console.log('folders')
+    console.log(ddir);
+    if (!ddir.includes(decodeURI(name))) {
+        console.log('no folder')
+        fs.mkdir(`chat/${decodeURI(name)}`, err => {
+            if(err) throw err; // не удалось создать папку
+            console.log('Папка успешно создана');
+        });
+    }
+    ddir = [];
+    chatFolder = fs.readdirSync(`chat/${name}`, { withFileTypes: true });
+    chatFolder=chatFolder.filter(d => d.isDirectory());
+    chatFolder.map(d => ddir.push(d.name));
+    console.log('folders')
+    console.log(ddir);
+    
+    if (!ddir.includes('img')) {
+        console.log('no img');
+        fs.mkdir(`chat/${name}/img`, err => {
+            if(err) throw err; // не удалось создать папку
+            console.log('Папка успешно создана');
+        });
+    }
+    
+    if (!ddir.includes('docs')) {
+        console.log('no docs');
+        fs.mkdir(`chat/${name}/docs`, err => {
+            if(err) throw err; // не удалось создать папку
+            console.log('Папка успешно создана');
+        });
+    }
 }

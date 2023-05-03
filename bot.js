@@ -5,12 +5,14 @@ const bot = new Telegraf(process.env.BOTTOKEN);
 const {session} = require('telegraf');
 const { Extra, Markup } = require('telegraf');
 const textHandler = require("./src/bot/message");
-const {startKeyboard, isEmpty, accUsList, okText, nokText} = require("./src/bot/other");
+const {startKeyboard, isEmpty, accUsList, okText, nokText, checkFolder} = require("./src/bot/other");
 const sendPost = require('./src/bot/api');
 const callback_query = require('./src/bot/callback_query');
 const {parse, original} = require("./src/bot/listsReorginizer");
 const delMess = require("./src/bot/historyClear");
-const {IOStart} = require('./appio');
+const {IOStart, message} = require('./appio');
+const https = require('https');
+const axios = require('axios');
 
 let options = {
     key: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/privkey.crt"),
@@ -94,6 +96,61 @@ bot.start( async (ctx) =>  {
     delMess(ctx, ctx.message.message_id+1, logger);
     ctx.session=session;
 });
+
+bot.on('photo', async (ctx) => {
+    let session = ctx.session;
+    if ((session.status==='chatWork')&&(session.hasOwnProperty('chatUser'))&&(session.chatUser!=='')){
+        try {
+            const result = await axios.get(`https://api.telegram.org/bot${process.env.BOTTOKEN}/getFile?file_id=${ctx.message.photo[ctx.message.photo.length-1].file_id}`)
+            console.log(result.data.result.file_path);
+
+            checkFolder(session.chatUser);
+            let name = Number(new Date())+'-'+result.data.result.file_path.slice(result.data.result.file_path.indexOf('/')+1)
+
+            let file = fs.createWriteStream(`chat/${session.chatUser}/img/${name}`);
+            await https.get(`https://api.telegram.org/file/bot${process.env.BOTTOKEN}/${result.data.result.file_path}`, function(response) {
+                response.pipe(file);
+            });            
+            file.on('finish', () => {
+                file.close();
+                message(session.chatUser, `img:|https://spamigor.site/chat/${encodeURI(session.chatUser)}/img/${encodeURI(name)}`)
+            });
+            console.log('done');
+        }
+        catch(e) {
+            console.log(e)
+        }
+    }
+    ctx.session = session;
+})
+
+bot.on('document', async (ctx) => {
+    let session = ctx.session;
+    if ((session.status==='chatWork')&&(session.hasOwnProperty('chatUser'))&&(session.chatUser!=='')){
+        console.log(ctx.message);
+        try {
+            const result = await axios.get(`https://api.telegram.org/bot${process.env.BOTTOKEN}/getFile?file_id=${ctx.message.document.file_id}`)
+            console.log(result.data.result.file_path);
+
+            checkFolder(session.chatUser);
+            let name = Number(new Date())+'-'+result.data.result.file_path.slice(result.data.result.file_path.indexOf('/')+1)
+
+            let file = fs.createWriteStream(`chat/${session.chatUser}/docs/${name}`);
+            await https.get(`https://api.telegram.org/file/bot${process.env.BOTTOKEN}/${result.data.result.file_path}`, function(response) {
+                response.pipe(file);
+            });            
+            file.on('finish', () => {
+                file.close();
+                message(session.chatUser, `doc:|https://spamigor.site/chat/${encodeURI(session.chatUser)}/docs/${encodeURI(name)}`)
+            });
+            console.log('done');
+        }
+        catch(e) {
+            console.log(e)
+        }
+    }
+    ctx.session = session;
+})
 
 bot.on('callback_query', async (ctx) => {
     logger.trace('callback_query: ' + ctx.from.id + ": " + ctx.callbackQuery.data)

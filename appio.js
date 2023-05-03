@@ -133,9 +133,36 @@ io.on('connection', socket => {
       connectedPeople[login].timer =setTimeout(save, 5000, connectedPeople[login].chat, login);
       let tgText = 'l ';
       buf.text.map((item)=> {tgText+=(item+'\n')})
-      if ((tgBot!==undefined)&&(socket.nickname===login)) tgBot.telegram.sendMessage(Number(process.env.ADMINTG), login+': '+tgText, Markup.inlineKeyboard([
-        Markup.button.callback(`Ответить`, `replyTo:${login}`)
-      ], {columns: 1} ));      
+      if ((tgBot!==undefined)&&(socket.nickname===login)) 
+        {
+          if (buf.text[0].slice(0, 4)==='img:') {
+            tgBot.telegram.sendPhoto(Number(process.env.ADMINTG), buf.text[0].slice(5))
+              .then((res)=>
+                tgBot.telegram.sendMessage(Number(process.env.ADMINTG), login, Markup.inlineKeyboard([
+                    Markup.button.callback(`Ответить`, `replyTo:${login}`)
+                  ], {columns: 1} )))
+              .catch((e)=>
+                tgBot.telegram.sendMessage(Number(process.env.ADMINTG), login+': '+tgText, Markup.inlineKeyboard([
+                  Markup.button.callback(`Ответить`, `replyTo:${login}`)
+                ], {columns: 1} )))
+          }
+          else if (buf.text[0].slice(0, 4)==='doc:') {
+            tgBot.telegram.sendDocument(Number(process.env.ADMINTG), buf.text[0].slice(5))
+              .then((res)=>
+                tgBot.telegram.sendMessage(Number(process.env.ADMINTG), login, Markup.inlineKeyboard([
+                    Markup.button.callback(`Ответить`, `replyTo:${login}`)
+                  ], {columns: 1} )))
+              .catch((e)=>
+                tgBot.telegram.sendMessage(Number(process.env.ADMINTG), login+': '+tgText, Markup.inlineKeyboard([
+                  Markup.button.callback(`Ответить`, `replyTo:${login}`)
+                ], {columns: 1} )))
+          }
+          else 
+            tgBot.telegram.sendMessage(Number(process.env.ADMINTG), login+': '+tgText, Markup.inlineKeyboard([
+                Markup.button.callback(`Ответить`, `replyTo:${login}`)
+              ], {columns: 1} )); 
+
+        }     
     }
     else if (needToSave.hasOwnProperty(login)) {
       if (needToSave[login].timer!==null) {
