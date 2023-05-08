@@ -774,7 +774,7 @@ async function callback_query(ctx, logger, process) {
                 if (ctx.callbackQuery.data[8]!=='S') {
                     let res = await sendPost({id: id}, 'setHash', `Bearer ${session.token}`);
                     if (res.status===200) {
-                        let addr = new URL('https://spamigor.site/build/');
+                        let addr = new URL(formUrl);
                         addr.searchParams.append('list', res.data.hash);
                         addr.searchParams.append('done', 'stList');
                         ctx.reply(addr.href);
@@ -782,7 +782,7 @@ async function callback_query(ctx, logger, process) {
                     else ctx.reply('Сервер временно недоступен');
                 }
                 else {
-                    let addr = new URL('https://spamigor.site/build/');
+                    let addr = new URL(formUrl);
                     addr.searchParams.append('list', session.slists[ind].hash);
                     addr.searchParams.append('done', 'sumtList');
                     ctx.reply(addr.href);
