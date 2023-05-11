@@ -1,4 +1,4 @@
-##api для сайта списка покупок
+## api для сайта списка покупок
 
 https://spamigor.site/api, ssl - certbot.
 
