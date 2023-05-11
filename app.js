@@ -30,7 +30,6 @@ app.get("/pict*", function(request, response){
         if(error){                  
             response.statusCode = 404;
             response.end("Resourse not found!");
-            console.log('404');
         }   
         else{
             response.end(data);
@@ -44,7 +43,6 @@ app.get("/chat*", function(request, response){
         if(error){                  
             response.statusCode = 404;
             response.end("Resourse not found!");
-            console.log('404');
         }   
         else{
             response.end(data);
@@ -56,8 +54,6 @@ app.use(upload.single("file"));
 app.post("/apiUpload", function (req, res, next) {
    
     let filedata = req.body;
-    console.log(req.headers.login);
-    console.log(req.headers.fname);
     if(!filedata)
         res.send({res: 'error'});
     else
@@ -66,7 +62,6 @@ app.post("/apiUpload", function (req, res, next) {
         let jjj = fs.readdirSync("pict", { withFileTypes: true });
         jjj=jjj.filter(d => d.isDirectory());
         jjj.map(d => ddir.push(d.name));
-        console.log(ddir);
         if (!ddir.includes(decodeURI(req.headers.login))) fs.mkdir(`pict/${decodeURI(req.headers.login)}`, err => {
           if(err) throw err; // не удалось создать папку
             console.log('Папка успешно создана');
@@ -83,10 +78,6 @@ app.post("/apiUpload", function (req, res, next) {
 app.post("/apiChat", function (req, res, next) {
    
     let filedata = req.body;
-    console.log(req.headers.login);
-    console.log(req.headers.fname);
-    console.log(req.headers.mode);
-    console.log(req.headers.ftype);
 
     if(!filedata)
         res.send({res: 'error'});
@@ -96,8 +87,6 @@ app.post("/apiChat", function (req, res, next) {
         let jjj = fs.readdirSync("chat", { withFileTypes: true });
         jjj=jjj.filter(d => d.isDirectory());
         jjj.map(d => ddir.push(d.name));
-        console.log('folders')
-        console.log(ddir);
         if (!ddir.includes(decodeURI(req.headers.login))) {
           console.log('no folder')
           fs.mkdir(`chat/${decodeURI(req.headers.login)}`, err => {
@@ -108,8 +97,6 @@ app.post("/apiChat", function (req, res, next) {
         let imgF = fs.readdirSync(`chat/${decodeURI(req.headers.login)}`, { withFileTypes: true });
         imgF=imgF.filter(d => d.isDirectory());
         imgF.map(d => ddir.push(d.name));
-        console.log('folders')
-        console.log(ddir);
         if (!ddir.includes('img')) {
           console.log('no img');
           fs.mkdir(`chat/${decodeURI(req.headers.login)}/img`, err => {
@@ -120,8 +107,6 @@ app.post("/apiChat", function (req, res, next) {
         let imgD = fs.readdirSync(`chat/${decodeURI(req.headers.login)}`, { withFileTypes: true });
         imgD=imgD.filter(d => d.isDirectory());
         imgD.map(d => ddir.push(d.name));
-        console.log('folders')
-        console.log(ddir);
         if (!ddir.includes('docs')) {
           console.log('no docs');
           fs.mkdir(`chat/${decodeURI(req.headers.login)}/docs`, err => {

@@ -10,6 +10,16 @@ const redirectPage = '/build';
 
 const log4js = require("log4js");
 
+/**
+ * @swagger
+ * /api/hello:
+ *   get:
+ *     description: Returns the hello world
+ *     responses:
+ *       200:
+ *         description: hello world
+ */
+
 let options = {
   key: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/privkey.crt"),
   cert: fs.readFileSync("/home/spamigor/next/api/js/centralApi/src/sert/fullchain.crt"),

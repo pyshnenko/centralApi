@@ -1,0 +1,180 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SPAMIGOR.SITE API",
+    "description": "Мой центральный АПИ",
+    "termsOfService": "http://spamigor.site/list",
+    "contact": {
+      "email": "pyshnenko94@yandex.ru"
+    },
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "https://spamigor.site"
+    }
+  ],
+  "tags": [
+    {
+      "name": "api",
+      "description": "Основной API",
+      "externalDocs": {
+        "description": "Открыть",
+        "url": "http://spamigor.site/api"
+      }
+    },
+    {
+      "name": "hello",
+      "description": "Просто проверка",
+      "externalDocs": {
+        "description": "Развернуть",
+        "url": "http://spamigor.site/api/hello"
+      }
+    }
+  ],
+  "paths": {
+    "/api": {
+      "get": {
+        "tags": [
+          "api"
+        ],
+        "summary": "Валидация пользовательской почты",
+        "description": "Пользователь получает сообщение по e-mail, переходит по ссылке и если все верно, E-mail подтверждается",
+        "operationId": "userValid",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Зашифрованное имя пользователя",
+            "required": true,
+            "explode": true,
+            "schema": {
+              "type": "string",
+              "default": "U2FsdGVkX18dI4%2BwM%2Fijqu%2Fc0413idvmmTlr2dn%2Bgg0%3D"
+            }
+          },
+          {
+            "name": "addr",
+            "in": "query",
+            "description": "Зашифрованный адрес",
+            "required": true,
+            "explode": true,
+            "schema": {
+              "type": "string",
+              "default": "U2FsdGVkX19%2FAsXFWL6vkUe9QTnUqTISDp9Njmxkv8xLN%2FPDKRQkvI2IRE5ExmlD"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ValidUser"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status value"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "api"
+        ],
+        "summary": "Проверка логина на занятость",
+        "description": "",
+        "operationId": "usersList",
+        "parameters": [
+          {
+            "name": "make",
+            "in": "header",
+            "description": "Указатель",
+            "required": true,
+            "schema": {
+              "enum": [
+                "usersList",
+                "askUserData",
+                "lists",
+                "sumLists",
+                "findTreningList",
+                "findSerialList",
+                "checkLogin"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckLogin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "done"
+          },
+          "401": {
+            "description": "someone incorrect"
+          }
+        },
+        "security": [
+          {
+            "B_auth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ValidUser": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "U2FsdGVkX18dI4%2BwM%2Fijqu%2Fc0413idvmmTlr2dn%2Bgg0%3D"
+          },
+          "addr": {
+            "type": "string",
+            "example": "U2FsdGVkX19%2FAsXFWL6vkUe9QTnUqTISDp9Njmxkv8xLN%2FPDKRQkvI2IRE5ExmlD"
+          }
+        }
+      },
+      "CheckLogin": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string",
+            "default": "anton1"
+          }
+        }
+      },
+      "TestAuthKey": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "default": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dpbiI6ImFudG9uMSIsInBhc3MiOiJhbnRvbiIsImZpcnN0X25hbWUiOiLQotC-0YjQtdGH0LrQsCIsImxhc3RfbmFtZSI6ItCi0L7Qu9GP0L0iLCJuYW1lIjoiVG94YSIsImVtYWlsIjoiMTIzQDQzMi7QvdGAIiwiaWF0IjoxNjcyMzgxNjc0fQ.Ezn3UNxNO9J9GgKPBx5a8lWQ1HK3aUXqAarNLDE_zqs"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "B_auth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
