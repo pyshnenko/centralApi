@@ -132,30 +132,36 @@ class MinioClass {
     }
   }
 
-  async uploadJson(data, name) {
+  async uploadJson(data, name, CPU) {
     console.log('upload Json')
     const fileMetaData = {
       'Content-Type': `application/json`,
     };
     try {
-      await this.s3Client.putObject(this.#bucket, name +'/chat.json', JSON.stringify(data), fileMetaData);
+      await this.s3Client.putObject(this.#bucket, CPU ? 'systemD/data.json' : name +'/chat.json', JSON.stringify(data), fileMetaData);
     }
     catch (e) {
       console.log(e)
     }
   }
 
-  getJson(name, res, rej) {
+  getJson(name, res, rej, CPU) {
     let data, dataS='';
     console.log('getJson');
     console.log(name);
     let uJ = this.uploadJson;
-    let prom = this.s3Client.getObject(this.#bucket, name+'/chat.json', function(e, dataStream) {
+    let prom = this.s3Client.getObject(this.#bucket, CPU ? 'systemD/data.json' : name +'/chat.json', function(e, dataStream) {
         if (e) {
           if (e.code==='NoSuchKey') {
-            logger.info('start new chat with ' + name);
-            uJ([], name);
-            res([]);
+            if (CPU) {
+              logger.info('no cpu data');
+              res({mem: {}, cpu: {}});
+            }
+            else {
+              logger.info('start new chat with ' + name);
+              uJ([], name);
+              res([]);
+            }
           }
           console.log(e);
           logger.error('error with getJson');
@@ -181,9 +187,15 @@ class MinioClass {
           }
           catch(e) {
             if (e.code==='NoSuchKey') {
-              logger.info('start new chat with ' + name);
-              this.uploadJson([], name);
-              res([]);
+              if (CPU) {
+                logger.info('no cpu data');
+                res({mem: {}, cpu: {}});
+              }
+              else {
+                logger.info('start new chat with ' + name);
+                uJ([], name);
+                res([]);
+              }
             }
             console.log(e);
             logger.error('error with getJson');

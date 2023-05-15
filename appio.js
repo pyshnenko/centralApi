@@ -5,6 +5,7 @@ const content = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
 process.title='IOServer';
 const MinioClass = require('./src/minio');
 const log4js = require("log4js");
+const os = require('node:os');
 log4js.configure({
     appenders: { 
         bot: { type: "file", filename: "log/appio.log" }, 
@@ -15,6 +16,7 @@ log4js.configure({
 const logger = log4js.getLogger("bot2");
 
 const s3 = new MinioClass(process.env.MINIO_LOCATION, process.env.MINIO_KEY, process.env.MINIO_SKEY, true, 'chat');
+const s3CPU = new MinioClass(process.env.MINIO_LOCATION, process.env.MINIO_KEY, process.env.MINIO_SKEY, true, 'datacpu');
 
 const httpServer = require('http').createServer((req, res) => {
   res.setHeader('Content-Type', 'text/html')
@@ -26,6 +28,16 @@ let tgBot = undefined;
 
 let connectedPeople = {};
 let needToSave = {};
+let cpuUsers = [];
+let cpuData = {mem: {}, cpu: {}, lastUpd: 0};
+const pr = new Promise((res,rej)=>s3CPU.getJson('a', res, rej, true));
+pr.then((res)=>{
+  cpuData={mem: {}, cpu: {}, lastUpd: 0}//res;
+  console.log('\n\n\n\n');
+  console.log(cpuData);
+  console.log('\n\n\n\n');
+  updateCpuDate(cpuData)
+});
 
 const io = require('socket.io')(httpServer, {
   cors: {
@@ -35,7 +47,21 @@ const io = require('socket.io')(httpServer, {
 
 io.on('connection', socket => {
   let prom;
-  console.log('Подключение установлено ' + socket.id)
+  console.log('Подключение установлено ' + socket.id);
+  
+  //данные о цпу
+
+  socket.on('startCPUdata', data => {
+    console.log('startCPUdata', data);
+    socket.join('cpu');
+    socket.emit('startData', cpuData);
+    cpuUsers.push(socket.id);
+  });
+  socket.on('endCPUdata', data => {
+    console.log('endCPUdata', data);
+    socket.leave('cpu');
+    cpuUsers.slice(cpuUsers.indexOf(socket.id), 1);
+  });
 
   // получаем данные от клиента
   socket.on('hi', data => {
@@ -72,6 +98,7 @@ io.on('connection', socket => {
   });
   socket.on('disconnect', data => {
     console.log(`Пользователь ${socket.id} отключен`);
+    if (cpuUsers.include(socket.io)) cpuUsers.slice(cpuUsers.indexOf(socket.io),1);
     if (connectedPeople.hasOwnProperty(socket.nickname)) {
       console.log(connectedPeople[socket.nickname].id.length)
       if (connectedPeople[socket.nickname].id.length===1) { 
@@ -248,3 +275,69 @@ function save(data, name) {
   s3Client.putObject('chat', name +'/chat.json', JSON.stringify(data), fileMetaData);
 }
 
+function updateCpuDate(cpuData) {
+  const memUse=((1-(os.freemem()/os.totalmem())).toFixed(2))*100;
+  const sysUs1m = os.loadavg()[0]*50;
+  const time = new Date();
+  if (cpuData.mem.hasOwnProperty('minutes')) cpuData.mem.minutes.push({data: memUse, time: Number(time)});
+  else cpuData.mem.minutes = [{data: memUse, time: Number(time)}];
+  if (cpuData.cpu.hasOwnProperty('minutes')) cpuData.cpu.minutes.push({data: sysUs1m, time: Number(time)});
+  else cpuData.cpu.minutes = [{data: sysUs1m, time: Number(time)}];
+  cpuData.lastUpd = Number(time);
+  if (time.getMinutes()%5===0) {    
+    if (cpuData.mem.hasOwnProperty('fiveMinutes')) {
+      cpuData.mem.fiveMinutes.push({data:
+        cpuData.mem.minutes.slice(-5).reduce((arr, num)=>arr.date+num.date, 0) / cpuData.mem.minutes.slice(-5).length,
+        time: Number(time)}
+      );
+      if (cpuData.mem.minutes.length>1500) cpuData.mem.minutes = cpuData.mem.minutes.slice(1500);
+    }
+    else cpuData.mem.fiveMinutes = [cpuData.mem.minutes.slice(-5).reduce((arr, num)=>arr.date+num.date, 0) / cpuData.mem.minutes.slice(-5).length];
+    if (cpuData.cpu.hasOwnProperty('fiveMinutes')) {
+      cpuData.cpu.fiveMinutes.push({data:
+        cpuData.cpu.minutes.slice(-5).reduce((arr, num)=>arr.date+num.date, 0) / cpuData.cpu.minutes.slice(-5).length,
+        time: Number(time)});
+      if (cpuData.cpu.minutes.length>1500) cpuData.cpu.minutes = cpuData.cpu.minutes.slice(1500);
+    }
+    else cpuData.cpu.fiveMinutes = [{data: cpuData.cpu.minutes.slice(-5).reduce((arr, num)=>arr.date+num.date, 0) / cpuData.cpu.minutes.slice(-5).length, 
+      time: Number(time)}];
+  }
+  if (time.getMinutes()===0) {
+    if (cpuData.mem.hasOwnProperty('hours')) {
+      cpuData.mem.hours.push(
+        cpuData.mem.fiveMinutes.slice(-12).reduce((arr, num)=>arr+num, 0) / cpuData.mem.fiveMinutes.slice(-12).length
+      );
+      if (cpuData.mem.fiveMinutes.length>1500) cpuData.mem.fiveMinutes = cpuData.mem.fiveMinutes.slice(1500);
+    }
+    else cpuData.mem.hours = [cpuData.mem.fiveMinutes.slice(-5).reduce((arr, num)=>arr.date+num.date, 0) / cpuData.mem.fiveMinutes.slice(-5).length];
+    if (cpuData.cpu.hasOwnProperty('hours')) {
+      cpuData.cpu.hours.push({data: 
+        cpuData.cpu.fiveMinutes.slice(-5).reduce((arr, num)=>arr+num, 0) / cpuData.cpu.fiveMinutes.slice(-5).length,
+        time: Number(time)});
+      if (cpuData.cpu.fiveMinutes.length>1500) cpuData.cpu.fiveMinutes = cpuData.cpu.fiveMinutes.slice(1500);
+    }
+    else cpuData.cpu.hours = [{data: cpuData.cpu.fiveMinutes.slice(-5).reduce((arr, num)=>arr.date+num.date, 0) / cpuData.cpu.fiveMinutes.slice(-5).length, 
+      time: Number(time)}];
+  }
+  saveCPU(cpuData);
+  setTimeout(updateCpuDate, 60*1000, cpuData);
+  if (cpuUsers.length) io.to('cpu').emit('newState', JSON.stringify({mem: memUse, cpu: sysUs1m, time: Number(time)}));
+}
+
+function saveCPU(data) {
+  console.log('saveCPU');
+  console.log('\n\n\n');
+  console.log(data);
+  console.log('\n\n\n');
+  let s3Client = new Minio.Client({
+    endPoint: process.env.MINIO_LOCATION,
+    useSSL: true,
+    accessKey: process.env.MINIO_KEY,
+    secretKey: process.env.MINIO_SKEY
+  })
+  console.log('upload Json')
+  const fileMetaData = {
+    'Content-Type': `application/json`,
+  };
+  s3Client.putObject('datacpu', 'systemD/data.json', JSON.stringify(data), fileMetaData);
+}
