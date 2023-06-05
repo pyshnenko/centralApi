@@ -98,7 +98,7 @@ io.on('connection', socket => {
   });
   socket.on('disconnect', data => {
     console.log(`Пользователь ${socket.id} отключен`);
-    if (cpuUsers.include(socket.io)) cpuUsers.slice(cpuUsers.indexOf(socket.io),1);
+    if (cpuUsers.includes(socket.io)) cpuUsers.slice(cpuUsers.indexOf(socket.io),1);
     if (connectedPeople.hasOwnProperty(socket.nickname)) {
       console.log(connectedPeople[socket.nickname].id.length)
       if (connectedPeople[socket.nickname].id.length===1) { 

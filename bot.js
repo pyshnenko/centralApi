@@ -47,7 +47,7 @@ log4js.configure({
                 mailer: { appenders: ['mail', 'console', 'bot'], level: 'all' }, },
 });
 const logger = log4js.getLogger("bot2");
-const mailLog = log4js.getLogger("mailer222");
+const mailLog = log4js.getLogger("mailer");
 
 const IOSend = IOStart(8813, bot);
 console.log(typeof(IOSend));
