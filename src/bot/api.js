@@ -9,7 +9,7 @@ log4js.configure({
 const logger = log4js.getLogger("bot");
 
 async function sendPost(obj, make, token) {
-    let baseURL = 'https://spamigor.site/api';
+    let baseURL = 'https://spamigor.ru/api';
     try {
         const jsonHeader = {
             "Content-type": "application/json",

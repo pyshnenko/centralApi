@@ -49,7 +49,7 @@ async function textHandler(ctx, logger, IOSend) {
         else if (ctx.session.status==='login') {
             let res = await sendPost({login: ctx.message.text.trim(), loginTG: ctx.from.username, id: Number(ctx.from.id)}, 'connectTG', '');
             if (res.status===200) {
-                ctx.replyWithHTML('Данные переданы. Пожалуйста, перейдите на <a href="https://spamigor.site/build/">основной сайт</a>, зайдите в профиль и подтвердите Ваш аккаунт (возле графы "телеграм" нажмите на Х чтобы подтвердить)');
+                ctx.replyWithHTML('Данные переданы. Пожалуйста, перейдите на <a href="https://spamigor.ru/build/">основной сайт</a>, зайдите в профиль и подтвердите Ваш аккаунт (возле графы "телеграм" нажмите на Х чтобы подтвердить)');
                 session.status='wait';
             }
             else {

@@ -71,7 +71,7 @@ bot.start( async (ctx) =>  {
             ctx.reply('Введите Ваш логин');
         }
         else if (session.status==='wait') {
-            ctx.replyWithHTML('Данные переданы. Пожалуйста, перейдите на <a href="https://spamigor.site/build/">основной сайт</a>, зайдите в профиль и подтвердите Ваш аккаунт (возле графы "телеграм" нажмите на Х чтобы подтвердить)');
+            ctx.replyWithHTML('Данные переданы. Пожалуйста, перейдите на <a href="https://spamigor.ru/build/">основной сайт</a>, зайдите в профиль и подтвердите Ваш аккаунт (возле графы "телеграм" нажмите на Х чтобы подтвердить)');
         }
         else {
             await ctx.replyWithHTML(
@@ -113,7 +113,7 @@ bot.on('photo', async (ctx) => {
             });            
             file.on('finish', () => {
                 file.close();
-                message(session.chatUser, `img:|https://spamigor.site/chat/${encodeURI(session.chatUser)}/img/${encodeURI(name)}`)
+                message(session.chatUser, `img:|https://spamigor.ru/chat/${encodeURI(session.chatUser)}/img/${encodeURI(name)}`)
             });
             console.log('done');
         }
@@ -141,7 +141,7 @@ bot.on('document', async (ctx) => {
             });            
             file.on('finish', () => {
                 file.close();
-                message(session.chatUser, `doc:|https://spamigor.site/chat/${encodeURI(session.chatUser)}/docs/${encodeURI(name)}`)
+                message(session.chatUser, `doc:|https://spamigor.ru/chat/${encodeURI(session.chatUser)}/docs/${encodeURI(name)}`)
             });
             console.log('done');
         }

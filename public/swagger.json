@@ -3,7 +3,7 @@
   "info": {
     "title": "SPAMIGOR.SITE API",
     "description": "Мой центральный АПИ",
-    "termsOfService": "http://spamigor.site/list",
+    "termsOfService": "http://spamigor.ru/list",
     "contact": {
       "email": "pyshnenko94@yandex.ru"
     },
@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "https://spamigor.site"
+      "url": "https://spamigor.ru"
     }
   ],
   "tags": [
@@ -20,7 +20,7 @@
       "description": "Основной API",
       "externalDocs": {
         "description": "Открыть",
-        "url": "http://spamigor.site/api"
+        "url": "http://spamigor.ru/api"
       }
     },
     {
@@ -28,7 +28,7 @@
       "description": "Просто проверка",
       "externalDocs": {
         "description": "Развернуть",
-        "url": "http://spamigor.site/api/hello"
+        "url": "http://spamigor.ru/api/hello"
       }
     }
   ],

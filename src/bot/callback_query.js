@@ -7,7 +7,7 @@ const compare = require("./../../compare");
 const sendPost = require('./api');
 const {startKeyboard, isEmpty, accUsList, okText, nokText, YorNkeyboard, progressBar} = require("./other");
 const {parse, parseT, original, originalT} = require("./listsReorginizer")
-const formUrl = 'https://spamigor.site/list';
+const formUrl = 'https://spamigor.ru/list';
 let jwt = require('jsonwebtoken');
 
 async function callback_query(ctx, logger, process) {
