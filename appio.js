@@ -268,11 +268,19 @@ function save(data, name) {
     accessKey: process.env.MINIO_KEY,
     secretKey: process.env.MINIO_SKEY
   })
+  let s3ClientNew = new Minio.Client({
+    endPoint: process.env.ENDPOINTNEW,
+    port: 9000,
+    useSSL: true,
+    accessKey: process.env.ACCESSNEW,
+    secretKey: process.env.SECRETNEW
+  })
   console.log('upload Json')
   const fileMetaData = {
     'Content-Type': `application/json`,
   };
   s3Client.putObject('chat', name +'/chat.json', JSON.stringify(data), fileMetaData);
+  s3ClientNew.putObject('chat', name +'/chat.json', JSON.stringify(data), fileMetaData);
 }
 
 function updateCpuDate(cpuData) {
@@ -335,9 +343,17 @@ function saveCPU(data) {
     accessKey: process.env.MINIO_KEY,
     secretKey: process.env.MINIO_SKEY
   })
+  let s3ClientNew = new Minio.Client({
+    endPoint: process.env.ENDPOINTNEW,
+    port: 9000,
+    useSSL: true,
+    accessKey: process.env.ACCESSNEW,
+    secretKey: process.env.SECRETNEW
+  })
   console.log('upload Json')
   const fileMetaData = {
     'Content-Type': `application/json`,
   };
   s3Client.putObject('datacpu', 'systemD/data.json', JSON.stringify(data), fileMetaData);
+  s3ClientNew.putObject('datacpu', 'systemD/data.json', JSON.stringify(data), fileMetaData);
 }

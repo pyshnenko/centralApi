@@ -27,7 +27,7 @@ log4js.configure({
         mail: {
             type: '@log4js-node/smtp',
             recipients: 'pyshnenko94@yandex.ru',
-            sendInterval: 20,
+            sendInterval: 20*60,
             transport: 'SMTP',
             SMTP: {
                 host: 'smtp.gmail.com',
@@ -215,10 +215,10 @@ bot.on('web_app_data', async (ctx) => {
 
 bot.launch(mailLog.info('bot start'));
 
-bot.catch((err)=>console.log(err));
+bot.catch((err)=>mailLog.fatal('Что-то с ботом' + String(err)));
 
 process.on('uncaughtException', (err, origin) => {
-    mailLog.fatal('Все, пиздец');
+    mailLog.fatal('Все, пиздец' + String(err));
     console.log(err)
 });
 
