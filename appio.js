@@ -144,7 +144,7 @@ io.on('connection', socket => {
   socket.on("otherProject", data => {
     if (tgBot) {
       let buf = JSON.parse(data);
-      tgBot.telegram.sendMessage(`ТЕХНИЧЕСКОЕ!!!\n${buf.from}\n${buf.text}`)
+      tgBot.telegram.sendMessage(Number(process.env.ADMINTG), `ТЕХНИЧЕСКОЕ!!!\n${buf.from}\n${buf.text}`)
     }
   })
 
