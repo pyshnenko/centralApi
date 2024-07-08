@@ -141,6 +141,13 @@ io.on('connection', socket => {
     logger.info('Пользователь '+data+' подключен');
   })
 
+  socket.on("otherProject", data => {
+    if (tgBot) {
+      let buf = JSON.parse(data);
+      tgBot.telegram.sendMessage(`ТЕХНИЧЕСКОЕ!!!\n${buf.from}\n${buf.text}`)
+    }
+  })
+
 
   socket.on('newMess', data=>{
     console.log(socket.nickname)
