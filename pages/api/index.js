@@ -4,6 +4,7 @@ const fs = require('fs');
 let jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const axios = require('axios');
+import requestIp from 'request-ip'
 
 const mailSend = require('./../../src/mailSend');
 const mail = new mailSend(process.env.MYURLS, process.env.SALT_CRYPT);
@@ -341,11 +342,11 @@ export default async function handler(req, res) {
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
           res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})            
-          socketApi().post('/', {text: `На главной странице ${extData.login} с адреса ${req.ip}`, from: extData.login})
+          socketApi().post('/', {text: `На главной странице ${extData[0].login} с адреса ${requestIp.getClientIp(req)}`, from: extData[0].login})
         }
         else {
           res.status(401).json({err: 'login not found', make: req.headers.make})
-          socketApi().post('/', {text: `На главной странице кто-то с адреса ${req.ip}`, from: 'Некто'})
+          socketApi().post('/', {text: `На главной странице кто-то с адреса ${requestIp.getClientIp(req)}`, from: 'Некто'})
         }
       }
 
@@ -357,11 +358,11 @@ export default async function handler(req, res) {
             let atoken=extData[0].pass.substr(7)
             if (result == true) {
               res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})              
-              socketApi().post('/', {text: `На главной странице ${extData.login} с адреса ${req.ip}`, from: extData.login})
+              socketApi().post('/', {text: `На главной странице ${extData[0].login} с адреса ${requestIp.getClientIp(req)}`, from: extData[0].login})
             }
             else {
               res.status(401).json({ res: 'not ok', error: 'pass incorrect', make: req.headers.make})              
-              socketApi().post('/', {text: `На главной странице ${extData.login} с адреса ${req.ip}`, from: extData.login})
+              socketApi().post('/', {text: `На главной странице некто с адреса ${requestIp.getClientIp(req)}`, from: 'Некто'})
             }
           });
         }
