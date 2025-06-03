@@ -3,10 +3,19 @@ import NextCors from 'nextjs-cors';
 const fs = require('fs');
 let jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const axios = require('axios');
 
 const mailSend = require('./../../src/mailSend');
 const mail = new mailSend(process.env.MYURLS, process.env.SALT_CRYPT);
-const redirectPage = '/build';
+const redirectPage = '/';
+const baseURL = 'https://cloud.spamigor.ru/socket';
+const jsonHeader = {
+  "Content-type": "application/json"
+};
+const socketApi = () => axios.create({
+    baseURL,
+    headers: jsonHeader
+});
 
 const log4js = require("log4js");
 
@@ -331,9 +340,13 @@ export default async function handler(req, res) {
         let atoken=req.headers.authorization.substr(7)
         let extData = await mongo.find({token: atoken})
         if (extData.length!==0) {
-            res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})
+          res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})            
+          socketApi().post('/', {text: `На главной странице ${extData.login} с адреса ${req.ip}`, from: extData.login})
         }
-        else res.status(401).json({err: 'login not found', make: req.headers.make})
+        else {
+          res.status(401).json({err: 'login not found', make: req.headers.make})
+          socketApi().post('/', {text: `На главной странице кто-то с адреса ${req.ip}`, from: 'Некто'})
+        }
       }
 
       else if ((req.headers.hasOwnProperty('make'))&&(req.headers.make==='login')&&(req.hasOwnProperty('body'))&&(req.body.login!=='')&&(req.body.pass!==''))
@@ -342,8 +355,14 @@ export default async function handler(req, res) {
         if (extData.length!==0) {
           bcrypt.compare(req.body.pass+req.body.login.trim(), extData[0].pass).then(function(result) {
             let atoken=extData[0].pass.substr(7)
-            if (result == true) res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})
-            else res.status(401).json({ res: 'not ok', error: 'pass incorrect', make: req.headers.make})
+            if (result == true) {
+              res.status(200).json({ res: 'ok', data: extData, token: extData[0].token, atoken})              
+              socketApi().post('/', {text: `На главной странице ${extData.login} с адреса ${req.ip}`, from: extData.login})
+            }
+            else {
+              res.status(401).json({ res: 'not ok', error: 'pass incorrect', make: req.headers.make})              
+              socketApi().post('/', {text: `На главной странице ${extData.login} с адреса ${req.ip}`, from: extData.login})
+            }
           });
         }
         else res.status(401).json({err: 'login not found', make: req.headers.make})
