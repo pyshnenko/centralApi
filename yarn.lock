@@ -1280,6 +1280,11 @@
   dependencies:
     tslib "^2.4.0"
 
+"@telegraf/types@^7.1.0":
+  version "7.1.0"
+  resolved "https://registry.npmjs.org/@telegraf/types/-/types-7.1.0.tgz"
+  integrity sha512-kGevOIbpMcIlCDeorKGpwZmdH7kHbqlk/Yj6dEpJMKEQw5lk0KVQY0OLXaCswy8GqlIVLd5625OB+rAntP9xVw==
+
 "@types/cookie@^0.4.1":
   version "0.4.1"
   resolved "https://registry.npmjs.org/@types/cookie/-/cookie-0.4.1.tgz"
@@ -1461,6 +1466,11 @@ agent-base@^6.0.2, agent-base@6:
   integrity sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==
   dependencies:
     debug "4"
+
+agent-base@9.0.0:
+  version "9.0.0"
+  resolved "https://registry.npmjs.org/agent-base/-/agent-base-9.0.0.tgz"
+  integrity sha512-TQf59BsZnytt8GdJKLPfUZ54g/iaUL2OWDSFCCvMOhsHduDQxO8xC4PNeyIkVcA5KwL2phPSv0douC0fgWzmnA==
 
 ajv@^6.10.0, ajv@^6.12.4:
   version "6.12.6"
@@ -3400,6 +3410,14 @@ https-proxy-agent@^5.0.0:
     agent-base "6"
     debug "4"
 
+https-proxy-agent@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-9.0.0.tgz"
+  integrity sha512-/MVmHp58WkOypgFhCLk4fzpPcFQvTJ/e6LBI7irpIO2HfxUbpmYoHF+KzipzJpxxzJu7aJNWQ0xojJ/dzV2G5g==
+  dependencies:
+    agent-base "9.0.0"
+    debug "^4.3.4"
+
 iconv-lite@0.4.24:
   version "0.4.24"
   resolved "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz"
@@ -4310,6 +4328,13 @@ node-fetch@^2.6.7, node-fetch@2.6.7:
   version "2.6.7"
   resolved "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.7.tgz"
   integrity sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==
+  dependencies:
+    whatwg-url "^5.0.0"
+
+node-fetch@^2.7.0:
+  version "2.7.0"
+  resolved "https://registry.npmjs.org/node-fetch/-/node-fetch-2.7.0.tgz"
+  integrity sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==
   dependencies:
     whatwg-url "^5.0.0"
 
@@ -5673,18 +5698,18 @@ tar@^6.1.11:
     yallist "^4.0.0"
 
 telegraf@^4.11.2:
-  version "4.11.2"
-  resolved "https://registry.npmjs.org/telegraf/-/telegraf-4.11.2.tgz"
-  integrity sha512-RGEh+NXkHbq1KcSSbJeVYhHMrEN4rymd9DSe3SoIV0886bJPBHLzYCNrOqnk9aeZE2Idwh5uK0X/xbR6jScQKQ==
+  version "4.16.3"
+  resolved "https://registry.npmjs.org/telegraf/-/telegraf-4.16.3.tgz"
+  integrity sha512-yjEu2NwkHlXu0OARWoNhJlIjX09dRktiMQFsM678BAH/PEPVwctzL67+tvXqLCRQQvm3SDtki2saGO9hLlz68w==
   dependencies:
+    "@telegraf/types" "^7.1.0"
     abort-controller "^3.0.0"
     debug "^4.3.4"
     mri "^1.2.0"
-    node-fetch "^2.6.7"
+    node-fetch "^2.7.0"
     p-timeout "^4.1.0"
     safe-compare "^1.1.4"
     sandwich-stream "^2.0.2"
-    typegram "^4.1.0"
 
 terminal-columns@^1.4.1:
   version "1.4.1"
@@ -5848,11 +5873,6 @@ typedarray@^0.0.6:
   version "0.0.6"
   resolved "https://registry.npmjs.org/typedarray/-/typedarray-0.0.6.tgz"
   integrity sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==
-
-typegram@^4.1.0:
-  version "4.3.0"
-  resolved "https://registry.npmjs.org/typegram/-/typegram-4.3.0.tgz"
-  integrity sha512-pS4STyOZoJ++Mwa9GPMTNjOwEzMkxFfFt1By6IbMOJfheP0utMP/H1ga6J9R4DTjAYBr0UDn4eQg++LpWBvcAg==
 
 types-ramda@^0.29.1:
   version "0.29.2"

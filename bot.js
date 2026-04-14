@@ -1,7 +1,19 @@
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 require('dotenv').config();
+const { HttpsProxyAgent } = require('https-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const PROXY_URL = process.env.SOCKS;
-const agent = new SocksProxyAgent(PROXY_URL);
+const PROXY_URL = String(process.env.HTTPPROXY);
+if (!PROXY_URL) {
+    console.error("Ошибка: Переменная HTTPPROXY не задана в .env");
+    process.exit(1);
+}
+const agent = new HttpsProxyAgent(PROXY_URL, {
+    keepAlive: true,
+    keepAliveMsecs: 1000,
+    timeout: 10000
+});
+//const agent = new HttpsProxyAgent(PROXY_URL);
 const fs = require("fs");
 const { Telegraf } = require('telegraf');
 const bot = new Telegraf(process.env.BOTTOKEN,{
